@@ -1,73 +1,82 @@
-# React + TypeScript + Vite
+# KONSUT Ltd Invoice Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, full-featured invoice management application built with React, TypeScript, and Vite. This system allows businesses to manage clients, inventory, and generate professional PDF invoices with ease.
 
-Currently, two official plugins are available:
+![Dashboard Screenshot](https://via.placeholder.com/800x450?text=Invoice+System+Dashboard)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## React Compiler
+- **Dashboard**: Real-time overview of revenue, invoice status, and recent activities.
+- **Invoice Management**: Create, edit, and manage invoices with a user-friendly interface.
+- **PDF Generation**: Generate professional PDF invoices with customizable settings (watermarks, barcodes, headers/footers).
+- **Client Management**: Maintain a database of clients with their contact details.
+- **Inventory/Stock**: Track products and services, including pricing and stock levels.
+- **Analytics**: Visual reports on revenue trends and business performance.
+- **Comprehensive Settings**:
+  - **Company Info**: Customize company details and logo.
+  - **Invoice Configuration**: Adjust formats, currencies (Ksh/USD), and layout.
+  - **User Preferences**: Theme support (Light/Dark) and notification settings.
+  - **System Settings**: Data backup and management.
+- **Data Persistence**: All data is securely stored locally in the browser (LocalStorage).
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+## 🛠️ Technology Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS
+- **Icons**: React Icons (Lucide, FontAwesome)
+- **Charts**: Recharts
+- **PDF Generation**: jsPDF, jspdf-autotable
+- **Routing**: React Router DOM
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📦 Installation
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Invoice-system
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+4. **Build for production**
+   ```bash
+   npm run build
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📖 Usage Guide
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Creating an Invoice
+1. Navigate to "New Invoice".
+2. Select a client or add a new one.
+3. Add items from your stock or create custom entries.
+4. Adjust quantities and prices.
+5. Click "Save Invoice" or "Download PDF".
+
+### Managing Settings
+Go to the **Settings** page to configure:
+- **Company Profile**: Update your business address and logo.
+- **Invoice Defaults**: Set your preferred currency, tax rates, and terms.
+- **System**: Backup your data or reset the application.
+
+## 💾 Data Management
+
+This application uses **LocalStorage** for data persistence. This means:
+- Your data stays on your device.
+- Clearing browser cache will remove your data (use the Backup feature in Settings!).
+- No external database connection is required.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License.
