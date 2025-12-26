@@ -1,6 +1,16 @@
 // src/pages/NewInvoice.tsx
-// Final consolidated New Quotation (KONSUT Ltd) - Enhanced Data Persistence
-
+/**
+ * New Invoice / Quotation Creator
+ * 
+ * A comprehensive form interface for generating professional documents.
+ * 
+ * Key Functionalities:
+ * - Inventory Selection: Browse and add items from 'Products', 'Mobilization', and 'Services'.
+ * - Dynamic Calculations: Auto-compute Freight, Totals, and Currency Conversions (USD/Ksh).
+ * - Draft Persistence: Uses localStorage to auto-save work in progress (`DRAFT_KEY`).
+ * - PDF Generation: Integration with `jspdf` for client-ready documents.
+ * - Stock Seeding: Dev tool to populate sample data for testing.
+ */
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 import { generateInvoicePDF } from "../utils/pdfGenerator";
@@ -62,7 +72,7 @@ const COMPANY = {
   phone: "+254 700 420 897",
   email: "info@konsutltd.co.ke",
   pin: "P052435869T",
-  logoPath: "/src/assets/logo.jpg",
+
 };
 
 /* ============================
@@ -109,17 +119,18 @@ const useToasts = () => {
 /* ============================
    Main Component
    ============================ */
+/* ============================
+   Main Component
+   ============================ */
 const NewInvoice: React.FC = () => {
-  /* ----------------------------
-     Stock (read-only source)
-     ---------------------------- */
+  // --- Inventory State ---
+  // Loaded from localStorage to populate the selection lists.
   const [products, setProducts] = useState<Product[]>([]);
   const [mobilization, setMobilization] = useState<Product[]>([]);
   const [services, setServices] = useState<Product[]>([]);
 
-  /* ----------------------------
-     UI state & draft meta
-     ---------------------------- */
+  // --- UI State ---
+  // activeCategory controls which tab (Products/Services/Mobilization) is selected.
   const [activeCategory, setActiveCategory] = useState<Category>("products");
   const [search, setSearch] = useState<Record<Category, string>>({
     products: "",
@@ -496,13 +507,21 @@ const NewInvoice: React.FC = () => {
       return;
     }
 
+    /* ----------------------------
+       PDF Generation
+       ----------------------------
+       Compiles the current form state into a standardized object expected by the PDF generator.
+       - Validates input first.
+       - Generates a PDF blob/download.
+       - Saves a record of the generated PDF to history.
+    */
     if (lines.length === 0) {
       pushToast("Add at least one item", "error");
       return;
     }
 
     try {
-      // Prepare invoice data in the format expected by generateInvoicePDF
+      // 1. Prepare Data Object
       const invoiceData = {
         id: `QUO-${Math.floor(Math.random() * 1000000)}`,
         date: new Date().toISOString(),
@@ -565,17 +584,53 @@ const NewInvoice: React.FC = () => {
   const seedSampleStock = () => {
     const sample: Record<Category, Product[]> = {
       products: [
-        { id: "P1001", name: "Concrete Mix 40kg", weight: 40, priceKsh: 3200, priceUSD: 24, description: "Premix concrete bag" },
-        { id: "P1002", name: "Rebar 12mm", weight: 12, priceKsh: 900, priceUSD: 7, description: "High tensile rebar" },
-        { id: "P1003", name: "Cement 50kg", weight: 50, priceKsh: 600, priceUSD: 4.5, description: "OPC cement 42.5R" },
+        { id: "P1001", name: "Mono Perc Solar Panel (450W)", weight: 22, priceKsh: 18500, priceUSD: 145, description: "High-efficiency monocrystalline solar panel" },
+        { id: "P1002", name: "Victron MultiPlus-II 48/5000", weight: 30, priceKsh: 245000, priceUSD: 1900, description: "48V Inverter/Charger 5000VA" },
+        { id: "P1003", name: "SmartSolar MPPT 250/100", weight: 4.5, priceKsh: 85000, priceUSD: 650, description: "Solar Max Power Point Tracker" },
+        { id: "P1004", name: "LiFePO4 Lithium Battery (48V 100Ah)", weight: 45, priceKsh: 165000, priceUSD: 1280, description: "Deep cycle lithium energy storage" },
+        { id: "P1005", name: "Pylontech US3000C Battery Module", weight: 32, priceKsh: 195000, priceUSD: 1500, description: "3.5kWh Li-ion Battery Module" },
+        { id: "P1006", name: "Victron Cerbo GX", weight: 1, priceKsh: 45000, priceUSD: 350, description: "System monitoring center" },
+        { id: "P1007", name: "Victron Lynx Distributor", weight: 2, priceKsh: 28000, priceUSD: 215, description: "Modular DC distribution system" },
+        { id: "P1008", name: "Solar PV Cable (6mm²)", weight: 0.1, priceKsh: 150, priceUSD: 1.2, description: "UV resistant DC solar cable (per meter)" },
+        { id: "P1009", name: "MC4 Solar Connectors (Pair)", weight: 0.05, priceKsh: 250, priceUSD: 2, description: "Male/Female connector pair" },
+        { id: "P1010", name: "12U Wall Mount Server Rack", weight: 15, priceKsh: 12000, priceUSD: 95, description: "Network cabinet with glass door" },
+        { id: "P1011", name: "Ubiquiti UniFi Access Point (WiFi 6)", weight: 0.8, priceKsh: 22000, priceUSD: 170, description: "Long-range enterprise WiFi AP" },
+        { id: "P1012", name: "Mikrotik Cloud Core Router", weight: 3, priceKsh: 65000, priceUSD: 500, description: "High performance enterprise router" },
+        { id: "P1013", name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", weight: 12, priceKsh: 45000, priceUSD: 350, description: "Online Double Conversion UPS" },
+        { id: "P1014", name: "Cisco 24-Port Gigabit Switch", weight: 4, priceKsh: 35000, priceUSD: 270, description: "Managed L2 switch" },
+        { id: "P1015", name: "Cat6 Ethernet Cable (305m Box)", weight: 10, priceKsh: 18000, priceUSD: 140, description: "Pure Copper UTP Cable" },
       ],
       mobilization: [
-        { id: "M2001", name: "Truck Hire - 1 day", priceKsh: 12000, priceUSD: 90 },
-        { id: "M2002", name: "Crane Hire - 4 hours", priceKsh: 25000, priceUSD: 185 },
+        { id: "M2001", name: "Site Mobilization & Logistics (Local)", priceKsh: 15000, priceUSD: 115 },
+        { id: "M2002", name: "Site Mobilization & Logistics (Upcountry)", priceKsh: 45000, priceUSD: 350 },
+        { id: "M2003", name: "Specialized Equipment Rental (Crane)", priceKsh: 25000, priceUSD: 195 },
+        { id: "M2004", name: "Scaffolding Setup & Rental", priceKsh: 12000, priceUSD: 95 },
+        { id: "M2005", name: "Technician Travel & Accommodation (Per Day)", priceKsh: 8000, priceUSD: 60 },
+        { id: "M2006", name: "Safety Gear & PPE Provision", priceKsh: 5000, priceUSD: 40 },
+        { id: "M2007", name: "Site Survey & Preliminary Assessment", priceKsh: 10000, priceUSD: 80 },
+        { id: "M2008", name: "Transport - Pickup Truck (Per Km)", priceKsh: 100, priceUSD: 0.8 },
+        { id: "M2009", name: "Transport - 3 Ton Truck (Per Km)", priceKsh: 150, priceUSD: 1.2 },
+        { id: "M2010", name: "Generator Rental (Per Day)", priceKsh: 8500, priceUSD: 65 },
+        { id: "M2011", name: "Network Tool Kit Mobilization", priceKsh: 3000, priceUSD: 25 },
+        { id: "M2012", name: "Fiber Splicing Kit Rental", priceKsh: 5000, priceUSD: 40 },
+        { id: "M2013", name: "Post-Installation Cleanup", priceKsh: 3000, priceUSD: 25 },
       ],
       services: [
-        { id: "S3001", name: "Site Survey", priceKsh: 8000, priceUSD: 60 },
-        { id: "S3002", name: "Design Consultation", priceKsh: 12000, priceUSD: 90 },
+        { id: "S3001", name: "Solar System Installation (Labor)", priceKsh: 25000, priceUSD: 195 },
+        { id: "S3002", name: "Network Infrastructure Setup (Labor)", priceKsh: 35000, priceUSD: 270 },
+        { id: "S3003", name: "Solar Power Audit & Consulting", priceKsh: 15000, priceUSD: 115 },
+        { id: "S3004", name: "Annual Maintenance Contract (Solar)", priceKsh: 50000, priceUSD: 385 },
+        { id: "S3005", name: "Annual Maintenance Contract (IT/Network)", priceKsh: 120000, priceUSD: 920 },
+        { id: "S3006", name: "Fiber Optic Splicing & Termination", priceKsh: 1500, priceUSD: 12 },
+        { id: "S3007", name: "CCTV Camera Installation & Config", priceKsh: 3500, priceUSD: 27 },
+        { id: "S3008", name: "Access Control System Setup", priceKsh: 18000, priceUSD: 140 },
+        { id: "S3009", name: "Structured Cabling (Per Point)", priceKsh: 2500, priceUSD: 20 },
+        { id: "S3010", name: "Server Room Configuration", priceKsh: 45000, priceUSD: 350 },
+        { id: "S3011", name: "Wi-Fi Site Survey & Heatmapping", priceKsh: 20000, priceUSD: 155 },
+        { id: "S3012", name: "Remote System Monitoring (Monthly)", priceKsh: 5000, priceUSD: 40 },
+        { id: "S3013", name: "IT Support Retainer (Standard)", priceKsh: 30000, priceUSD: 230 },
+        { id: "S3014", name: "Emergency Troubleshooting Call-out", priceKsh: 10000, priceUSD: 80 },
+        { id: "S3015", name: "Firmware Update & Optimization", priceKsh: 8000, priceUSD: 60 },
       ],
     };
     localStorage.setItem(STOCK_KEY, JSON.stringify(sample));
@@ -589,50 +644,47 @@ const NewInvoice: React.FC = () => {
      Toolbar (adaptive): search + actions
      ---------------------------- */
   const Toolbar = () => (
-    <div className="sticky top-0 z-40 bg-white border-b p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <img src={COMPANY.logoPath} alt="logo" className="h-10 w-auto object-contain" />
-        <div>
-          <div className="text-lg font-bold" style={{ color: "#007FFF" }}>KONSUT Ltd</div>
-          <div className="text-sm text-gray-600">Quotation</div>
-        </div>
+    <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
+        <p className="text-sm text-gray-500">Create a new invoice or quotation</p>
       </div>
 
-      <div className="flex items-center gap-2 w-full md:w-auto">
+      <div className="flex items-center gap-3 w-full md:w-auto">
         {/* Search */}
-        <div className="flex items-center border rounded px-2 py-1 flex-1 md:flex-none">
-          <FaSearch className="text-gray-500" />
+        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 md:flex-none w-full md:w-64 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+          <FaSearch className="text-gray-400" />
           <input
             type="text"
             placeholder={`Search ${activeCategory}...`}
             value={search[activeCategory]}
             onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))}
-            className="ml-2 outline-none w-full"
+            className="ml-2 bg-transparent outline-none w-full text-sm placeholder-gray-400 text-gray-700"
           />
         </div>
 
         {/* Desktop: labeled buttons */}
-        <div className="hidden md:flex items-center gap-2 ml-2">
-          <button onClick={clearData} className="px-3 py-1 rounded bg-red-500 text-white flex items-center gap-2">
-            <FaTrash /> Clear Data
+        <div className="hidden md:flex items-center gap-2">
+          <button onClick={clearData} className="px-4 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
+            <FaTrash size={14} /> Clear
           </button>
-          <button onClick={seedSampleStock} className="px-3 py-1 rounded bg-gray-200 text-gray-800 flex items-center gap-2">
-            <FaSeedling /> Seed Stock
+          <button onClick={seedSampleStock} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
+            <FaSeedling size={14} /> Seed
           </button>
-          <button onClick={saveQuotation} className="px-3 py-1 rounded bg-green-600 text-white flex items-center gap-2">
-            <FaSave /> Save Quotation
+          <button onClick={saveQuotation} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
+            <FaSave size={14} /> Save
           </button>
-          <button onClick={generatePDF} className="px-3 py-1 rounded bg-[#007FFF] text-white flex items-center gap-2">
-            <FaFilePdf /> Download PDF
+          <button onClick={generatePDF} className="px-4 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
+            <FaFilePdf size={14} /> PDF
           </button>
         </div>
 
         {/* Mobile: icons only */}
-        <div className="flex md:hidden items-center gap-2 ml-2">
-          <button onClick={clearData} className="p-2 rounded bg-red-500 text-white"><FaTrash /></button>
-          <button onClick={seedSampleStock} className="p-2 rounded bg-gray-200 text-gray-800"><FaSeedling /></button>
-          <button onClick={saveQuotation} className="p-2 rounded bg-green-600 text-white"><FaSave /></button>
-          <button onClick={generatePDF} className="p-2 rounded bg-[#007FFF] text-white"><FaFilePdf /></button>
+        <div className="flex md:hidden items-center gap-2 ml-auto">
+          <button onClick={clearData} className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-100"><FaTrash /></button>
+          <button onClick={seedSampleStock} className="p-2 rounded-lg bg-gray-50 text-gray-600 border border-gray-200"><FaSeedling /></button>
+          <button onClick={saveQuotation} className="p-2 rounded-lg bg-green-100 text-green-700 border border-green-200"><FaSave /></button>
+          <button onClick={generatePDF} className="p-2 rounded-lg bg-brand-100 text-brand-700 border border-brand-200"><FaFilePdf /></button>
         </div>
       </div>
     </div>
@@ -659,54 +711,59 @@ const NewInvoice: React.FC = () => {
             </div>
 
             <div>
-              <p><strong>Customer ID:</strong> {customerId}</p>
-              <div className="mt-2">
-                <input
-                  placeholder="Customer Name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className={`border p-2 rounded w-full ${validationErrors.customerName ? 'border-red-500' : ''}`}
-                />
-                {validationErrors.customerName && <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>}
-              </div>
-              <div className="flex gap-2 mt-2">
-                <div className="flex-1">
-                  <input
-                    placeholder="Phone"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className={`border p-2 rounded w-full ${validationErrors.customerPhone ? 'border-red-500' : ''}`}
-                  />
-                  {validationErrors.customerPhone && <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>}
+              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-1">Customer Details</p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-mono text-gray-400">{customerId}</span>
                 </div>
-                <div className="flex-1">
+                <div className="space-y-3">
                   <input
-                    placeholder="Email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    className={`border p-2 rounded w-full ${validationErrors.customerEmail ? 'border-red-500' : ''}`}
+                    placeholder="Customer Name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className={`border border-gray-300 p-2.5 rounded-lg w-full text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow ${validationErrors.customerName ? 'border-red-500 ring-1 ring-red-200' : ''}`}
                   />
-                  {validationErrors.customerEmail && <p className="text-red-500 text-xs mt-1">{validationErrors.customerEmail}</p>}
+                  {validationErrors.customerName && <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>}
                 </div>
-              </div>
-              <textarea
-                placeholder="Address"
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                className="border p-2 rounded w-full mt-2"
-                rows={2}
-              />
-              <div className="mt-2 flex gap-2 items-center">
-                <label className="text-sm">Valid Till</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className={`border p-2 rounded ${validationErrors.dueDate ? 'border-red-500' : ''}`}
+                <div className="flex gap-2 mt-2">
+                  <div className="flex-1">
+                    <input
+                      placeholder="Phone"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className={`border p-2 rounded w-full ${validationErrors.customerPhone ? 'border-red-500' : ''}`}
+                    />
+                    {validationErrors.customerPhone && <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>}
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      placeholder="Email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className={`border p-2 rounded w-full ${validationErrors.customerEmail ? 'border-red-500' : ''}`}
+                    />
+                    {validationErrors.customerEmail && <p className="text-red-500 text-xs mt-1">{validationErrors.customerEmail}</p>}
+                  </div>
+                </div>
+                <textarea
+                  placeholder="Address"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="border p-2 rounded w-full mt-2"
+                  rows={2}
                 />
-                {validationErrors.dueDate && <p className="text-red-500 text-xs mt-1">{validationErrors.dueDate}</p>}
-                <div className="text-xs text-gray-600 ml-2">
-                  {dueDate ? `${Math.ceil((new Date(dueDate).getTime() - new Date(issuedDate).getTime()) / (1000 * 60 * 60 * 24))} day(s) left` : ""}
+                <div className="mt-2 flex gap-2 items-center">
+                  <label className="text-sm">Valid Till</label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className={`border p-2 rounded ${validationErrors.dueDate ? 'border-red-500' : ''}`}
+                  />
+                  {validationErrors.dueDate && <p className="text-red-500 text-xs mt-1">{validationErrors.dueDate}</p>}
+                  <div className="text-xs text-gray-600 ml-2">
+                    {dueDate ? `${Math.ceil((new Date(dueDate).getTime() - new Date(issuedDate).getTime()) / (1000 * 60 * 60 * 24))} day(s) left` : ""}
+                  </div>
                 </div>
               </div>
             </div>
@@ -751,14 +808,14 @@ const NewInvoice: React.FC = () => {
 
         {/* Category buttons */}
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setActiveCategory("products")} className={`px-3 py-2 rounded ${activeCategory === "products" ? "bg-[#007FFF] text-white" : "bg-gray-200"}`}>
-            <FaSeedling className="inline md:hidden" /> <span className="hidden md:inline">Products</span>
+          <button onClick={() => setActiveCategory("products")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "products" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+            <FaSeedling className="md:inline" /> <span className="hidden md:inline">Products</span>
           </button>
-          <button onClick={() => setActiveCategory("mobilization")} className={`px-3 py-2 rounded ${activeCategory === "mobilization" ? "bg-[#007FFF] text-white" : "bg-gray-200"}`}>
-            <FaTruck className="inline md:hidden" /> <span className="hidden md:inline">Mobilization</span>
+          <button onClick={() => setActiveCategory("mobilization")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "mobilization" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+            <FaTruck className="md:inline" /> <span className="hidden md:inline">Mobilization</span>
           </button>
-          <button onClick={() => setActiveCategory("services")} className={`px-3 py-2 rounded ${activeCategory === "services" ? "bg-[#007FFF] text-white" : "bg-gray-200"}`}>
-            <FaToolbox className="inline md:hidden" /> <span className="hidden md:inline">Services</span>
+          <button onClick={() => setActiveCategory("services")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "services" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+            <FaToolbox className="md:inline" /> <span className="hidden md:inline">Services</span>
           </button>
         </div>
 
@@ -873,24 +930,25 @@ const NewInvoice: React.FC = () => {
 
             <div className="flex gap-2 items-center flex-wrap">
               <button onClick={saveQuotation} className="px-3 py-1 rounded bg-green-600 text-white">Save Quotation</button>
-              <button onClick={generatePDF} className="px-3 py-1 rounded bg-[#007FFF] text-white flex items-center gap-2"><FaFilePdf /> <span className="hidden md:inline">Download PDF</span></button>
+              <button onClick={generatePDF} className="px-3 py-1 rounded bg-brand-600 hover:bg-brand-700 text-white flex items-center gap-2"><FaFilePdf /> <span className="hidden md:inline">Download PDF</span></button>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center text-gray-500 text-xs mb-8">
-          If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya
-        </div>
-      </div>
 
-      {/* Toasts */}
-      <div className="fixed bottom-4 right-4 space-y-2 z-50">
-        {toasts.map((t) => (
-          <div key={t.id} className={`px-4 py-2 rounded shadow text-white ${t.type === "success" ? "bg-green-600" : t.type === "error" ? "bg-red-600" : "bg-blue-600"}`}>
-            {t.message}
+          {/* Footer */}
+          <div className="text-center text-gray-500 text-xs mb-8">
+            If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya
           </div>
-        ))}
+        </div>
+
+        {/* Toasts */}
+        <div className="fixed bottom-4 right-4 space-y-2 z-50">
+          {toasts.map((t) => (
+            <div key={t.id} className={`px-4 py-2 rounded shadow text-white ${t.type === "success" ? "bg-green-600" : t.type === "error" ? "bg-red-600" : "bg-blue-600"}`}>
+              {t.message}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

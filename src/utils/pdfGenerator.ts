@@ -1,8 +1,6 @@
-// src/utils/pdfGenerator.ts
-
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
-import { COMPANY } from "../constants";
+import autoTable from "jspdf-autotable";
+import { getCompanySettings, getInvoiceSettings } from "../utils/config";
 import logo from "../assets/logo.jpg";
 
 export interface InvoiceData {
@@ -26,11 +24,9 @@ export interface InvoiceData {
   status: string;
 }
 
-const loadImageAsDataURL = (src: string): Promise<string | null> =>
+const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number; height: number } | null> =>
   new Promise((resolve) => {
     if (!src) return resolve(null);
-    // If src is already a data URL (which import might return if small, but usually returns path in Vite)
-    // In Vite, imported image is a string (path).
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
@@ -41,7 +37,11 @@ const loadImageAsDataURL = (src: string): Promise<string | null> =>
         const ctx = c.getContext("2d");
         if (!ctx) return resolve(null);
         ctx.drawImage(img, 0, 0);
-        resolve(c.toDataURL("image/png"));
+        resolve({
+          data: c.toDataURL("image/png"),
+          width: img.width,
+          height: img.height
+        });
       } catch {
         resolve(null);
       }
@@ -56,307 +56,302 @@ export const generateInvoicePDF = async (
 ) => {
   try {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const COMPANY = getCompanySettings();
+    const SETTINGS = getInvoiceSettings();
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    const primaryColor = [0, 87, 163]; // Darker blue for professional look
+    const margin = 15;
+    const boxGap = 5;
+    const primaryColor = [0, 153, 255]; // Brand Blue #0099ff
+    const secondaryColor = [31, 41, 55]; // Gray 800 (Darker)
 
-    // --- Watermark ---
+    // Helper to draw a box with optional header
+    const drawBox = (x: number, y: number, w: number, h: number, title?: string) => {
+      doc.setDrawColor(200, 200, 200); // Light gray borders
+      doc.setLineWidth(0.1);
+      doc.rect(x, y, w, h);
+
+      if (title) {
+        doc.setFillColor(240, 240, 240); // Light gray header bg
+        doc.rect(x, y, w, 7, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]); // Blue title
+        doc.text(title, x + 3, y + 5);
+      }
+    };
+
+    // --- Watermark (Subtle) ---
     doc.saveGraphicsState();
-    doc.setTextColor(240, 240, 240); // Very light gray
+    doc.setTextColor(230, 230, 230); // Slightly darker watermark
     doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
-    // Rotate 45 degrees
-    const text = "KONSUT LTD";
-    const textWidth = doc.getTextWidth(text);
-
-    // Center the rotation
+    const watermarkText = "KONSUT LTD";
     const cx = pageWidth / 2;
     const cy = pageHeight / 2;
-
-    doc.setTextColor(230, 230, 230);
-    doc.text(text, cx, cy, { align: "center", angle: 45 });
+    doc.text(watermarkText, cx, cy, { align: "center", angle: 45 });
     doc.restoreGraphicsState();
 
-    // --- Header Section (Two Boxes) ---
+    // --- Header Section (Clean Design: Logo Left, Info Right) ---
     const headerY = margin;
-    const headerHeight = 35;
-    const boxWidth = (pageWidth - (margin * 2) - 5) / 2; // 5mm gap
+    const headerHeight = 35; // Keeping height reservation
 
-    // Left Box: Company Info
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(margin, headerY, boxWidth, headerHeight);
+    // LEFT: Logo
+    const logoInfo = await loadImageAsDataURL(logo);
+    if (logoInfo) {
+      // Calculate aspect ratio to prevent compression/distortion
+      const maxW = 80; // Allow it to be wider
+      const maxH = 40; // Allow it to be taller
+      const aspect = logoInfo.width / logoInfo.height;
 
-    let y = headerY + 6;
-    const leftPad = margin + 4;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 87, 163); // Blue company name
-    doc.text(COMPANY.name, leftPad, y);
+      let imgW = maxW;
+      let imgH = maxW / aspect;
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    y += 5;
-    doc.text(COMPANY.address1, leftPad, y);
-    y += 4;
-    doc.text(COMPANY.address2, leftPad, y);
-    y += 4;
-    doc.text(`Phone: ${COMPANY.phone}`, leftPad, y);
-    y += 4;
-    doc.text(`Email: ${COMPANY.email}`, leftPad, y);
-    y += 4;
-    doc.text(`PIN: ${COMPANY.pin}`, leftPad, y);
+      if (imgH > maxH) {
+        imgH = maxH;
+        imgW = maxH * aspect;
+      }
 
-    // Right Box: Logo
-    const rightBoxX = margin + boxWidth + 5;
-    doc.rect(rightBoxX, headerY, boxWidth, headerHeight);
-
-    // Use imported logo variable
-    const logoData = await loadImageAsDataURL(logo);
-    if (logoData) {
-      const imgW = 35;
-      const imgH = 20; // approximate
-      // Center logo in right box
-      const lx = rightBoxX + (boxWidth - imgW) / 2;
-      const ly = headerY + (headerHeight - imgH) / 2;
-      doc.addImage(logoData, "PNG", lx, ly, imgW, imgH);
+      doc.addImage(logoInfo.data, "PNG", margin, headerY, imgW, imgH);
     }
 
-    // --- Title Bar ---
-    const titleY = headerY + headerHeight + 5;
-    const titleHeight = 10;
-    doc.setFillColor(0, 87, 163); // Blue background
-    doc.rect(margin, titleY, pageWidth - (margin * 2), titleHeight, "F");
+    // RIGHT: Company Info
+    const rightMargin = pageWidth - margin;
+    let y = headerY + 5;
+
+    // Company Name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20); // Larger for emphasis
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(COMPANY.name, rightMargin, y, { align: "right" });
+
+    // Company Details
+    y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+
+    doc.text(COMPANY.address1, rightMargin, y, { align: "right" });
+    y += 5;
+    doc.text(COMPANY.address2, rightMargin, y, { align: "right" });
+    y += 5;
+    doc.text(`Phone: ${COMPANY.phone}`, rightMargin, y, { align: "right" });
+    y += 5;
+    doc.text(`Email: ${COMPANY.email}`, rightMargin, y, { align: "right" });
+    y += 5;
+    doc.text(`PIN: ${COMPANY.pin}`, rightMargin, y, { align: "right" });
+
+    // --- Title Bar (Full Width Blue) ---
+    // Added a bit more spacing after the header info
+    const titleY = headerY + headerHeight + 10;
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(margin, titleY, pageWidth - (margin * 2), 10, "F");
 
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
+    // documentType is centered
     doc.text(documentType, pageWidth / 2, titleY + 7, { align: "center" });
 
-    // --- Details Section (Two Boxes) ---
-    const detailsY = titleY + titleHeight + 5;
-    const detailsHeight = 40;
+    // --- Details Section (Middle Boxes) ---
+    const detailsY = titleY + 15;
+    const detailsHeight = 45;
+    // Helper calculations for layout below header
+    const boxWidth = (pageWidth - (margin * 2) - boxGap) / 2;
+    const rightBoxX = margin + boxWidth + boxGap;
 
-    // Left Box: Bill To
-    doc.setDrawColor(200, 200, 200);
-    doc.setTextColor(0, 0, 0); // Reset text color
-    doc.rect(margin, detailsY, boxWidth, detailsHeight);
+    // Box 1: Bill To
+    drawBox(margin, detailsY, boxWidth, detailsHeight, "Bill To:");
 
-    // Header background for "Bill To"
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, detailsY, boxWidth, 7, "F");
-
-    doc.setFont("helvetica", "bold");
+    y = detailsY + 12; // Start below header
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(0, 87, 163);
-    doc.text("Bill To:", margin + 4, detailsY + 5);
+    doc.setTextColor(0, 0, 0); // Pure Black
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    let dy = detailsY + 12;
-    doc.text(`Customer ID: ${invoice.customer.id}`, margin + 4, dy); dy += 5;
-    doc.text(`Name: ${invoice.customer.name || "-"}`, margin + 4, dy); dy += 5;
-    doc.text(`Phone: ${invoice.customer.phone || "-"}`, margin + 4, dy); dy += 5;
-    doc.text(`Email: ${invoice.customer.email || "-"}`, margin + 4, dy); dy += 5;
-    // Wrap address if long
-    const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address || "-"}`, boxWidth - 8);
-    doc.text(addrLines, margin + 4, dy);
-
-    // Right Box: Invoice Details
-    doc.rect(rightBoxX, detailsY, boxWidth, detailsHeight);
-
-    // Header background
-    doc.setFillColor(240, 240, 240);
-    doc.rect(rightBoxX, detailsY, boxWidth, 7, "F");
-
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 87, 163);
-    const detailsTitle = documentType === "INVOICE" ? "Invoice Details:" : "Quotation Details:";
-    doc.text(detailsTitle, rightBoxX + 4, detailsY + 5);
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    dy = detailsY + 12;
-
-    const numLabel = documentType === "INVOICE" ? "Invoice No:" : "Quotation No:";
-    const dateLabel = "Issued Date:";
-    const dueLabel = documentType === "INVOICE" ? "Due Date:" : "Valid Until:";
-
-    // Helper for aligned key-value pairs
-    const printRow = (label: string, value: string, yPos: number, isStatus = false) => {
-      doc.text(label, rightBoxX + 4, yPos);
-      if (isStatus) {
-        if (value === "Paid") doc.setTextColor(0, 128, 0);
-        else if (value === "Overdue") doc.setTextColor(255, 0, 0);
-        else doc.setTextColor(255, 165, 0);
-        doc.setFont("helvetica", "bold");
-      }
-      doc.text(value, rightBoxX + 40, yPos);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
-    };
-
-    printRow(numLabel, invoice.id, dy); dy += 5;
-    printRow(dateLabel, invoice.issuedDate, dy); dy += 5;
-    printRow(dueLabel, invoice.dueDate || "-", dy); dy += 5;
-    printRow("Payment Status:", invoice.status, dy, true);
-
-    // --- Table ---
-    if (typeof (doc as any).autoTable !== "function") {
-      console.error("autoTable is not available");
-      alert("PDF generation failed: autoTable plugin not loaded.");
-      return false;
+    if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id}`, margin + 4, y); y += 4; }
+    doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
+    if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone}`, margin + 4, y); y += 4; }
+    if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email}`, margin + 4, y); y += 4; }
+    if (invoice.customer.address) {
+      const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
+      doc.text(addrLines, margin + 4, y);
     }
 
-    const includeFreightCol = invoice.productFreightTotal > 0;
+    // Box 2: Invoice Details
+    drawBox(rightBoxX, detailsY, boxWidth, detailsHeight, documentType === "INVOICE" ? "Invoice Details:" : "Quote Details:");
 
-    // Columns: Description, Qty, Unit Price, VAT (16%), Total
-    // Removed Category
-    const head: string[] = [
+    y = detailsY + 12;
+    const labelX = rightBoxX + 4;
+    const valX = rightBoxX + 45;
+
+    const printRow = (label: string, value: string, color?: number[]) => {
+      doc.setTextColor(0, 0, 0); // Pure Black
+      doc.setFont("helvetica", "normal");
+      doc.text(label, labelX, y);
+      if (color) doc.setTextColor(color[0], color[1], color[2]);
+      doc.text(value, valX, y);
+      y += 5;
+    };
+
+    printRow(documentType === 'INVOICE' ? "Invoice No:" : "Quote No:", invoice.id);
+    printRow("Issued Date:", invoice.issuedDate);
+    if (invoice.dueDate) printRow(documentType === 'INVOICE' ? "Due Date:" : "Valid Until:", invoice.dueDate);
+
+    // Status
+    let statusColor = [245, 158, 11]; // orange
+    if (invoice.status === "Paid") statusColor = [16, 185, 129];
+    if (invoice.status === "Overdue") statusColor = [239, 68, 68];
+
+    doc.setTextColor(0, 0, 0); // Pure Black
+    doc.text("Status:", labelX, y);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.text(invoice.status, valX, y);
+
+    // --- Table ---
+    // Removed "Category" column as requested
+    const includeFreightCol = invoice.productFreightTotal > 0;
+    const tableHeader = [
       "Description",
+      // "Category", // Removed
       "Qty",
       "Unit Price",
-      "VAT (16%)",
       "Total",
       ...(includeFreightCol ? ["Freight"] : []),
     ];
 
-    const body = invoice.items.map((l) => {
-      const unitPrice = l.unitPrice;
-      const vat = unitPrice * 0.16;
-      const qty = l.quantity;
-      const total = unitPrice * qty; // Note: Total usually excludes VAT in line items unless specified, but let's keep it simple: Unit * Qty. VAT is separate column.
+    const tableBody = invoice.items.map((l) => [
+      l.description || l.name,
+      // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-", // Removed
+      String(l.quantity),
+      l.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      (l.unitPrice * l.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      ...(includeFreightCol ? [(l.productFreight || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })] : []),
+    ]);
 
-      return [
-        l.description || l.name,
-        String(qty),
-        unitPrice.toFixed(2),
-        vat.toFixed(2),
-        total.toFixed(2),
-        ...(includeFreightCol ? [(l.productFreight || 0).toFixed(2)] : []),
-      ];
-    });
-
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: detailsY + detailsHeight + 10,
-      head: [head],
-      body,
+      head: [tableHeader],
+      body: tableBody,
       theme: "grid",
-      headStyles: {
-        fillColor: [0, 87, 163],
-        textColor: 255,
-        fontStyle: "bold",
-        halign: "center"
-      },
-      columnStyles: {
-        0: { halign: "left" }, // Description
-        1: { halign: "center" }, // Qty
-        2: { halign: "right" }, // Unit Price
-        3: { halign: "right" }, // VAT
-        4: { halign: "right" }, // Total
-        5: { halign: "right" }, // Freight
-      },
       styles: {
         fontSize: 9,
         cellPadding: 3,
-        lineColor: [200, 200, 200],
+        font: "helvetica",
+        textColor: [0, 0, 0], // Pure Black
+        lineColor: [150, 150, 150], // Darker Grid
         lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: 255,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { halign: "left" }, // Desc
+        1: { halign: "center" }, // Qty (shifted index)
+        2: { halign: "right" }, // Price
+        3: { halign: "right" }, // Total
+        4: { halign: "right" }, // Freight
+      },
+      alternateRowStyles: {
+        fillColor: [245, 247, 250], // slightly darker zebra
       },
       margin: { left: margin, right: margin },
     });
 
-    // --- Footer Section ---
+    // --- Footer Section (Bottom Boxes) ---
     const finalY = (doc as any).lastAutoTable?.finalY || 200;
     const footerTopY = finalY + 10;
 
-    // Payment Details Box (Left)
-    const paymentBoxWidth = boxWidth;
-    const paymentBoxHeight = 45;
-
-    // Check if we need a new page
-    if (footerTopY + paymentBoxHeight > pageHeight - 20) {
+    // Check page break
+    if (footerTopY + 50 > pageHeight) {
       doc.addPage();
-      // Reset Y for new page
-      // ... logic for new page if needed, but for now let's assume it fits or just draw at top
     }
 
-    // Payment Header
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, footerTopY, paymentBoxWidth, 7, "F");
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(margin, footerTopY, paymentBoxWidth, paymentBoxHeight); // Border for whole box
+    // Payment Box (Left)
+    drawBox(margin, footerTopY, boxWidth, 45, "Payment Details");
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(0, 87, 163);
-    doc.text("Payment Details", margin + 4, footerTopY + 5);
-
-    doc.setTextColor(0, 0, 0);
+    y = footerTopY + 12;
     doc.setFont("helvetica", "normal");
-    let py = footerTopY + 12;
-    doc.text("Bank: I&M BANK", margin + 4, py); py += 5;
-    doc.text("Branch: RUIRU BRANCH", margin + 4, py); py += 5;
-    doc.text("Account No (KSH): XXXXXXXXXXXXX", margin + 4, py); py += 5;
-    doc.text("Account No (USD): 05507023231250", margin + 4, py); py += 5;
-    doc.text("SWIFT CODE: IMBLKENA", margin + 4, py); py += 5;
-    doc.text("BANK CODE: 57 | BRANCH CODE: 055", margin + 4, py);
+    doc.setFontSize(9); // Size 9 for better visibility
+    doc.setTextColor(0, 0, 0); // Pure Black
+    const bankDetails = [
+      "Bank: I&M BANK",
+      "Branch: RUIRU BRANCH",
+      "Account No (KSH): XXXXXXXXXXXXX",
+      "Account No (USD): 05507023231250",
+      "SWIFT CODE: IMBLKENA",
+      "BANK CODE: 57 | BRANCH CODE: 055"
+    ];
+    bankDetails.forEach(line => {
+      doc.text(line, margin + 4, y);
+      y += 4;
+    });
 
     // Summary Box (Right)
-    const summaryBoxX = margin + boxWidth + 5;
-    const summaryBoxHeight = 35; // Shorter than payment
+    // Increased height to accommodate VAT
+    drawBox(rightBoxX, footerTopY, boxWidth, 45, "Summary");
 
-    doc.setFillColor(240, 240, 240);
-    doc.rect(summaryBoxX, footerTopY, boxWidth, 7, "F"); // Header
-    doc.rect(summaryBoxX, footerTopY, boxWidth, summaryBoxHeight); // Border
+    y = footerTopY + 14;
+    const sumLabelX = rightBoxX + 4;
+    const sumValX = pageWidth - margin - 4;
 
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 87, 163);
-    doc.text("Summary", summaryBoxX + 4, footerTopY + 5);
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    let sy = footerTopY + 14;
+    // Calculations for display
+    const vatRate = 0.16;
+    const vatAmount = invoice.subtotal * vatRate;
+    const finalTotal = invoice.subtotal + vatAmount + invoice.productFreightTotal;
 
     // Subtotal
-    doc.text("Subtotal", summaryBoxX + 4, sy);
-    doc.text(`Ksh ${invoice.subtotal.toFixed(2)}`, pageWidth - margin - 4, sy, { align: "right" });
-    sy += 7;
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0); // Pure Black
+    doc.text("Subtotal", sumLabelX, y);
+    doc.text(`Ksh ${invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
+    y += 6;
 
-    // Freight (if any)
+    // VAT
+    doc.text(`VAT (16%)`, sumLabelX, y);
+    doc.text(`Ksh ${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
+    y += 6;
+
+    // Freight
     if (invoice.productFreightTotal > 0) {
-      doc.text("Freight", summaryBoxX + 4, sy);
-      doc.text(`Ksh ${invoice.productFreightTotal.toFixed(2)}`, pageWidth - margin - 4, sy, { align: "right" });
-      sy += 7;
+      doc.text("Freight", sumLabelX, y);
+      doc.text(`Ksh ${invoice.productFreightTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
+      y += 6;
     }
 
-    // Grand Total Bar
-    doc.setFillColor(0, 87, 163);
-    doc.rect(summaryBoxX, sy - 4, boxWidth, 10, "F");
+    // Grand Total Bar inside the box
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(rightBoxX, y - 4, boxWidth, 10, "F");
+
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.text("Grand Total", summaryBoxX + 4, sy + 2);
-    doc.text(`Ksh ${invoice.grandTotal.toFixed(2)}`, pageWidth - margin - 4, sy + 2, { align: "right" });
+    doc.text("Grand Total", sumLabelX, y + 2);
+    // Use the calculated total including VAT
+    doc.text(`Ksh ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y + 2, { align: "right" });
 
-    // --- Bottom Footer ---
-    const footerY = pageHeight - 10;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
+    // --- Footer Text ---
+    const footerParamsY = pageHeight - 12;
     doc.setFont("helvetica", "italic");
-    const footerLine = "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya";
-    doc.text(footerLine, pageWidth / 2, footerY, { align: "center" });
+    doc.setFontSize(8);
+    doc.setTextColor(50, 50, 50); // Darker gray for footer
+    const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya";
+    doc.text(disclaimer, pageWidth / 2, footerParamsY - 5, { align: "center" });
 
     // Page Numbers
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(120);
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 5, { align: "right" });
     }
 
     doc.save(`${COMPANY.name}_${documentType}_${invoice.id}.pdf`);
     return true;
+
   } catch (err) {
     console.error("PDF generation failed:", err);
     alert(`PDF generation failed: ${err instanceof Error ? err.message : String(err)}`);

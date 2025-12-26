@@ -1,11 +1,25 @@
 // src/pages/Settings.tsx
-// Settings Page for KONSUT Ltd Invoice Management System
+/**
+ * System Settings & Configuration
+ * 
+ * Central hub for managing application-wide preferences.
+ * 
+ * Key Features:
+ * - Company Profile: Edit business details (address, PIN, logo) used in invoices.
+ * - Invoice Configuration: Customize PDF output (currency, layout, columns).
+ * - System Preferences: Theme, language, and auto-save toggles.
+ * - Data Management: Options to reset defaults or clear all local data.
+ * 
+ * Technical Implementation:
+ * - All settings are persisted to localStorage using specific keys.
+ * - Changes are applied immediately to the global state (refresh may be required for some).
+ * - "Save" simulates a network request for better UX feedback.
+ */
 
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
 import {
   FaSave,
-  FaSync,
+  FaUndo,
   FaBuilding,
   FaFileInvoice,
   FaUserCog,
@@ -13,13 +27,15 @@ import {
   FaServer,
   FaInfoCircle,
   FaCheck,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaChevronRight,
+  FaTrash,
+  FaSync
 } from "react-icons/fa";
-=======
-import { FaSave, FaUndo, FaBuilding, FaFileInvoice, FaUser, FaBell, FaCog, FaInfoCircle } from "react-icons/fa";
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
+import logo from "../assets/logo.jpg";
 
-// Types
+// --- Types & Interfaces ---
+
 interface CompanyInfo {
   name: string;
   address1: string;
@@ -81,7 +97,8 @@ interface AppSettings {
   lastSaved: string;
 }
 
-// Default values
+// --- Default Values ---
+
 const DEFAULT_COMPANY: CompanyInfo = {
   name: "KONSUT Ltd",
   address1: "P.O BOX 21162-00100",
@@ -143,994 +160,458 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   lastSaved: new Date().toISOString(),
 };
 
-type TabType = "company" | "invoice" | "preferences" | "notifications" | "system" | "about";
+// --- Components ---
 
 const Settings: React.FC = () => {
-<<<<<<< HEAD
+  // State
   const [activeTab, setActiveTab] = useState("company");
-=======
-  const [activeTab, setActiveTab] = useState<TabType>("company");
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
   const [company, setCompany] = useState<CompanyInfo>(DEFAULT_COMPANY);
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>(DEFAULT_INVOICE_SETTINGS);
   const [userPreferences, setUserPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SYSTEM_SETTINGS);
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
+
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-=======
   const [saveMessage, setSaveMessage] = useState("");
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
 
+  // Load Data
   useEffect(() => {
-    // Load saved settings from localStorage
-    const savedCompany = localStorage.getItem("company");
-    const savedInvoiceSettings = localStorage.getItem("invoiceSettings");
-    const savedUserPreferences = localStorage.getItem("userPreferences");
-    const savedNotifications = localStorage.getItem("notificationSettings");
-    const savedSystem = localStorage.getItem("systemSettings");
-    const savedApp = localStorage.getItem("appSettings");
+    try {
+      const load = (key: string, setter: any) => {
+        const stored = localStorage.getItem(key);
+        if (stored) setter(JSON.parse(stored));
+      };
 
-    if (savedCompany) setCompany(JSON.parse(savedCompany));
-    if (savedInvoiceSettings) setInvoiceSettings(JSON.parse(savedInvoiceSettings));
-    if (savedUserPreferences) setUserPreferences(JSON.parse(savedUserPreferences));
-    if (savedNotifications) setNotificationSettings(JSON.parse(savedNotifications));
-    if (savedSystem) setSystemSettings(JSON.parse(savedSystem));
-    if (savedApp) setAppSettings(JSON.parse(savedApp));
-
-    setLoading(false);
+      load("company", setCompany);
+      load("invoiceSettings", setInvoiceSettings);
+      load("userPreferences", setUserPreferences);
+      load("notificationSettings", setNotificationSettings);
+      load("systemSettings", setSystemSettings);
+      load("appSettings", setAppSettings);
+    } catch (e) {
+      console.error("Error loading settings:", e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // Actions
   const saveSettings = () => {
-<<<<<<< HEAD
     setSaveStatus("saving");
     try {
+      const now = new Date().toISOString();
+      const updatedApp = { ...appSettings, lastSaved: now };
+      setAppSettings(updatedApp);
+
       localStorage.setItem("company", JSON.stringify(company));
       localStorage.setItem("invoiceSettings", JSON.stringify(invoiceSettings));
       localStorage.setItem("userPreferences", JSON.stringify(userPreferences));
       localStorage.setItem("notificationSettings", JSON.stringify(notificationSettings));
       localStorage.setItem("systemSettings", JSON.stringify(systemSettings));
-      localStorage.setItem("appSettings", JSON.stringify(appSettings));
+      localStorage.setItem("appSettings", JSON.stringify(updatedApp));
 
+      // Simulate network delay for better UX feel
       setTimeout(() => {
         setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      }, 500);
+        setSaveMessage("All settings saved successfully.");
+        setTimeout(() => {
+          setSaveStatus("idle");
+          setSaveMessage("");
+        }, 3000);
+      }, 600);
     } catch (error) {
       console.error("Failed to save settings:", error);
       setSaveStatus("error");
+      setSaveMessage("Failed to save settings.");
     }
   };
 
-  const tabs = [
-    { id: "company", label: "Company Info", icon: FaBuilding },
-    { id: "invoice", label: "Invoice Settings", icon: FaFileInvoice },
-    { id: "user", label: "Preferences", icon: FaUserCog },
-    { id: "notifications", label: "Notifications", icon: FaBell },
-    { id: "system", label: "System", icon: FaServer },
-    { id: "about", label: "About", icon: FaInfoCircle },
-=======
-    const updatedAppSettings = { ...appSettings, lastSaved: new Date().toISOString() };
-    
-    localStorage.setItem("company", JSON.stringify(company));
-    localStorage.setItem("invoiceSettings", JSON.stringify(invoiceSettings));
-    localStorage.setItem("userPreferences", JSON.stringify(userPreferences));
-    localStorage.setItem("notificationSettings", JSON.stringify(notificationSettings));
-    localStorage.setItem("systemSettings", JSON.stringify(systemSettings));
-    localStorage.setItem("appSettings", JSON.stringify(updatedAppSettings));
-    
-    setAppSettings(updatedAppSettings);
-    setSaveMessage("Settings saved successfully!");
-    setTimeout(() => setSaveMessage(""), 3000);
-  };
-
   const resetToDefaults = () => {
-    if (window.confirm("Are you sure you want to reset all settings to default values?")) {
+    if (window.confirm("Are you sure you want to reset ALL settings? This cannot be undone.")) {
       setCompany(DEFAULT_COMPANY);
       setInvoiceSettings(DEFAULT_INVOICE_SETTINGS);
       setUserPreferences(DEFAULT_USER_PREFERENCES);
       setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS);
       setSystemSettings(DEFAULT_SYSTEM_SETTINGS);
-      setSaveMessage("Settings reset to defaults. Click Save to apply.");
-      setTimeout(() => setSaveMessage(""), 3000);
+      setAppSettings(DEFAULT_APP_SETTINGS);
+
+      setSaveStatus("saved");
+      setSaveMessage("Settings restored to defaults.");
+      setTimeout(() => {
+        setSaveStatus("idle");
+        setSaveMessage("");
+      }, 3000);
     }
   };
 
-  const tabs = [
-    { id: "company" as TabType, label: "Company", icon: FaBuilding },
-    { id: "invoice" as TabType, label: "Invoice", icon: FaFileInvoice },
-    { id: "preferences" as TabType, label: "Preferences", icon: FaUser },
-    { id: "notifications" as TabType, label: "Notifications", icon: FaBell },
-    { id: "system" as TabType, label: "System", icon: FaCog },
-    { id: "about" as TabType, label: "About", icon: FaInfoCircle },
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
-  ];
+  const clearAllData = () => {
+    const confirmText = "DANGER ZONE: This will permanently delete ALL invoices, clients, and stored data. Are you absolutely sure?";
+    if (window.confirm(confirmText)) {
+      // Double confirmation
+      if (window.confirm("Really delete everything?")) {
+        localStorage.clear();
+        window.location.reload();
+      }
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <p className="mt-2 text-gray-600">Loading settings...</p>
+  // Render Helpers
+  const renderInput = (label: string, value: string, onChange: (val: string) => void, type = "text", placeholder = "") => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none"
+      />
+    </div>
+  );
+
+  const renderSelect = (label: string, value: string, options: { value: string; label: string }[], onChange: (val: string) => void) => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none bg-white"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const renderToggle = (label: string, description: string, checked: boolean, onChange: (val: boolean) => void) => (
+    <label className="flex items-start gap-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+      <div className="relative inline-flex items-center cursor-pointer mt-1">
+        <input
+          type="checkbox"
+          className="sr-only peer"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+      </div>
+      <div>
+        <span className="block text-sm font-medium text-gray-900">{label}</span>
+        <span className="block text-xs text-gray-500">{description}</span>
+      </div>
+    </label>
+  );
+
+  const tabs = [
+    { id: "company", label: "Company", icon: FaBuilding },
+    { id: "invoice", label: "Invoicing", icon: FaFileInvoice },
+    { id: "system", label: "System", icon: FaServer }, // Merged some for simplicity
+    { id: "about", label: "About", icon: FaInfoCircle },
+  ];
+
+  if (loading) return <div className="h-screen flex items-center justify-center text-gray-500">Loading Configuration...</div>;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto">
-<<<<<<< HEAD
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={saveSettings}
-              disabled={saveStatus === "saving"}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${saveStatus === "saved"
-                  ? "bg-green-600 text-white"
-                  : saveStatus === "error"
-                    ? "bg-red-600 text-white"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-            >
-              {saveStatus === "saving" ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : saveStatus === "saved" ? (
-                <>
-                  <FaCheck /> Saved!
-                </>
-              ) : (
-                <>
-                  <FaSave /> Save Changes
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50"
-            >
-              <FaSync /> Reload
-            </button>
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-brand-100 text-brand-600 rounded-lg">
+            <FaUserCog size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">System Settings</h1>
+            <p className="text-sm text-gray-500">Manage application configurations</p>
           </div>
         </div>
+        <div className="flex gap-2">
+          <button
+            onClick={resetToDefaults}
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <FaUndo size={14} /> Reset Defaults
+          </button>
+          <button
+            onClick={saveSettings}
+            disabled={saveStatus === 'saving'}
+            className={`px-6 py-2 bg-[#0099ff] hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${saveStatus === 'saving' ? 'opacity-75 cursor-wait' : ''}`}
+          >
+            {saveStatus === 'saving' ? <FaSync className="animate-spin" /> : <FaSave />}
+            {saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </header>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar Navigation */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${activeTab === tab.id
-                      ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
-                      : "text-gray-600 hover:bg-gray-50 border-l-4 border-transparent"
-                    }`}
-                >
-                  <tab.icon className="text-lg" />
-                  <span className="font-medium">{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 bg-white rounded-lg shadow p-6">
-            {activeTab === "company" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Company Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                    <input
-                      type="text"
-                      value={company.name}
-                      onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      value={company.phone}
-                      onChange={(e) => setCompany({ ...company, phone: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      value={company.email}
-                      onChange={(e) => setCompany({ ...company, email: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">KRA PIN</label>
-                    <input
-                      type="text"
-                      value={company.pin}
-                      onChange={(e) => setCompany({ ...company, pin: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                    <input
-                      type="text"
-                      value={company.address1}
-                      onChange={(e) => setCompany({ ...company, address1: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
-                    <input
-                      type="text"
-                      value={company.address2}
-                      onChange={(e) => setCompany({ ...company, address2: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo Path (URL or Local Path)</label>
-                    <input
-                      type="text"
-                      value={company.logoPath}
-                      onChange={(e) => setCompany({ ...company, logoPath: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Enter the path to your logo image.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "invoice" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Invoice Configuration</h2>
-
-                <div className="space-y-4">
-                  <h3 className="text-md font-medium text-gray-700">Display Options</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { key: "includeHeader", label: "Include Header" },
-                      { key: "includeFooter", label: "Include Footer" },
-                      { key: "includeWatermark", label: "Include Watermark" },
-                      { key: "includeBarcode", label: "Include Barcode" },
-                      { key: "includeFreight", label: "Show Freight Column" },
-                      { key: "includeDescriptions", label: "Show Item Descriptions" },
-                      { key: "includePaymentDetails", label: "Show Payment Details" },
-                      { key: "includeTerms", label: "Show Terms & Conditions" },
-                    ].map((item) => (
-                      <label key={item.key} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={invoiceSettings[item.key as keyof InvoiceSettings] as boolean}
-                          onChange={(e) => setInvoiceSettings({ ...invoiceSettings, [item.key]: e.target.checked })}
-                          className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-gray-700">{item.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-md font-medium text-gray-700">Footer Content</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Footer Text</label>
-                    <textarea
-                      value={invoiceSettings.footerText}
-                      onChange={(e) => setInvoiceSettings({ ...invoiceSettings, footerText: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "user" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">User Preferences</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Theme</label>
-                    <select
-                      value={userPreferences.theme}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, theme: e.target.value as any })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="auto">System Default</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                    <select
-                      value={userPreferences.language}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, language: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="en">English</option>
-                      <option value="sw">Swahili</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={userPreferences.autoSaveDrafts}
-                        onChange={(e) => setUserPreferences({ ...userPreferences, autoSaveDrafts: e.target.checked })}
-                        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <div>
-                        <span className="block font-medium text-gray-700">Auto-save Drafts</span>
-                        <span className="text-sm text-gray-500">Automatically save invoice drafts while typing</span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "notifications" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Notification Settings</h2>
-                <div className="space-y-4">
-                  {[
-                    { key: "email", label: "Email Notifications", desc: "Receive updates via email" },
-                    { key: "inApp", label: "In-App Notifications", desc: "Show notifications within the application" },
-                    { key: "desktop", label: "Desktop Notifications", desc: "Show browser push notifications" },
-                  ].map((item) => (
-                    <label key={item.key} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings[item.key as keyof NotificationSettings] as boolean}
-                        onChange={(e) => setNotificationSettings({ ...notificationSettings, [item.key]: e.target.checked })}
-                        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <div>
-                        <span className="block font-medium text-gray-700">{item.label}</span>
-                        <span className="text-sm text-gray-500">{item.desc}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "system" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">System Settings</h2>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                  <FaInfoCircle className="text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="font-medium text-blue-800">Data Storage</h3>
-                    <p className="text-sm text-blue-600 mt-1">
-                      All data is currently stored in your browser's LocalStorage. Clearing your browser cache will remove all data.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-md font-medium text-gray-700">Backup & Restore</h3>
-                  <div className="flex gap-4">
-                    <button className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors">
-                      Download Backup
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                      Restore from File
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-md font-medium text-gray-700">Danger Zone</h3>
-                  <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                    <h4 className="font-medium text-red-800 mb-2">Reset Application</h4>
-                    <p className="text-sm text-red-600 mb-4">
-                      This will delete all invoices, customers, and settings. This action cannot be undone.
-                    </p>
-                    <button
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete all data? This cannot be undone.")) {
-                          localStorage.clear();
-                          window.location.reload();
-                        }
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Clear All Data
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "about" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">About</h2>
-                <div className="text-center py-8">
-                  <img src={company.logoPath} alt="Logo" className="h-24 mx-auto mb-4 object-contain" />
-                  <h3 className="text-2xl font-bold text-gray-900">{appSettings.appName}</h3>
-                  <p className="text-gray-500 mt-2">Version {appSettings.version}</p>
-                  <p className="text-gray-400 text-sm mt-1">Built on {new Date(appSettings.buildDate).toLocaleDateString()}</p>
-                </div>
-
-                <div className="border-t pt-6">
-                  <h4 className="font-medium text-gray-800 mb-2">Credits</h4>
-                  <p className="text-gray-600">
-                    Developed for KONSUT Ltd.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-=======
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
-
-        {/* Save Message */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8">
+        {/* Feedback Toast */}
         {saveMessage && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg text-white font-medium flex items-center gap-3 animate-slide-up z-50 ${saveStatus === 'error' ? 'bg-red-500' : 'bg-green-600'}`}>
+            {saveStatus === 'error' ? <FaExclamationTriangle /> : <FaCheck />}
             {saveMessage}
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px overflow-x-auto">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                      activeTab === tab.id
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sidebar Navigation */}
+          <aside className="w-full md:w-64 flex-shrink-0">
+            <nav className="space-y-1">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                    ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200'
+                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
                     }`}
-                  >
-                    <Icon className="text-lg" />
+                >
+                  <div className="flex items-center gap-3">
+                    <tab.icon className={activeTab === tab.id ? "text-brand-500" : "text-gray-400"} size={18} />
                     {tab.label}
-                  </button>
-                );
-              })}
+                  </div>
+                  {activeTab === tab.id && <FaChevronRight size={12} className="text-brand-400" />}
+                </button>
+              ))}
             </nav>
-          </div>
 
-          <div className="p-6">
-            {/* Company Information Tab */}
-            {activeTab === "company" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Company Information</h2>
-                
+            {/* Quick Stats Widget */}
+            <div className="mt-8 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">System Status</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Version</span>
+                  <span className="font-medium text-gray-900">{appSettings.version}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Last Setup</span>
+                  <span className="font-medium text-gray-900 text-xs">
+                    {new Date(appSettings.lastSaved).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Content Area */}
+          <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 min-h-[500px]">
+
+            {/* Company Settings */}
+            {activeTab === 'company' && (
+              <div className="p-8 animate-fade-in">
+                <div className="mb-8 border-b border-gray-100 pb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Company Profile</h2>
+                  <p className="text-gray-500 mt-1">Manage your business identity and contact details</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.name}
-                      onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      PIN/Tax ID
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.pin}
-                      onChange={(e) => setCompany({ ...company, pin: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address Line 1
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.address1}
-                      onChange={(e) => setCompany({ ...company, address1: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address Line 2
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.address2}
-                      onChange={(e) => setCompany({ ...company, address2: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.phone}
-                      onChange={(e) => setCompany({ ...company, phone: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.email}
-                      onChange={(e) => setCompany({ ...company, email: e.target.value })}
-                    />
-                  </div>
+                  {renderInput("Company Name", company.name, v => setCompany({ ...company, name: v }))}
+                  {renderInput("Tax PIN / VAT ID", company.pin, v => setCompany({ ...company, pin: v }))}
+                  {renderInput("Phone Number", company.phone, v => setCompany({ ...company, phone: v }), "tel")}
+                  {renderInput("Email Address", company.email, v => setCompany({ ...company, email: v }), "email")}
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Logo Path
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={company.logoPath}
-                      onChange={(e) => setCompany({ ...company, logoPath: e.target.value })}
-                      placeholder="/src/assets/logo.jpg"
-                    />
+                    {renderInput("Address Line 1", company.address1, v => setCompany({ ...company, address1: v }))}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Invoice Settings Tab */}
-            {activeTab === "invoice" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Invoice Settings</h2>
-
-                {/* Format Settings */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700 mb-4">Format Settings</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Number Format
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.numberFormat}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, numberFormat: e.target.value as "comma" | "decimal" | "compact" })}
-                      >
-                        <option value="comma">Comma (1,234.56)</option>
-                        <option value="decimal">Decimal (1234.56)</option>
-                        <option value="compact">Compact (1.2K)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Currency
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.currency}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, currency: e.target.value as "Ksh" | "USD" })}
-                      >
-                        <option value="Ksh">Kenyan Shilling (Ksh)</option>
-                        <option value="USD">US Dollar (USD)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Date Format
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.dateFormat}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, dateFormat: e.target.value as "DD/MM/YYYY" })}
-                      >
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* PDF Settings */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700 mb-4">PDF Settings</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Page Size
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.pageSize}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, pageSize: e.target.value as "a4" | "letter" | "legal" })}
-                      >
-                        <option value="a4">A4</option>
-                        <option value="letter">Letter</option>
-                        <option value="legal">Legal</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Orientation
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.pageOrientation}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, pageOrientation: e.target.value as "portrait" | "landscape" })}
-                      >
-                        <option value="portrait">Portrait</option>
-                        <option value="landscape">Landscape</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Font Family
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.fontFamily}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, fontFamily: e.target.value as "Helvetica" | "Courier New" | "Times New Roman" })}
-                      >
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Courier New">Courier New</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Font Size
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={invoiceSettings.fontSize}
-                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, fontSize: Number(e.target.value) as 8 | 10 | 12 })}
-                      >
-                        <option value="8">8pt</option>
-                        <option value="10">10pt</option>
-                        <option value="12">12pt</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Include Options */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700 mb-4">Include in Invoice</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      { key: "includeHeader", label: "Header" },
-                      { key: "includeFooter", label: "Footer" },
-                      { key: "includeWatermark", label: "Watermark" },
-                      { key: "includeBarcode", label: "Barcode" },
-                      { key: "includeFreight", label: "Freight Charges" },
-                      { key: "includeDescriptions", label: "Item Descriptions" },
-                      { key: "includeCustomerDetails", label: "Customer Details" },
-                      { key: "includePaymentDetails", label: "Payment Details" },
-                      { key: "includeCompanyDetails", label: "Company Details" },
-                      { key: "includeTerms", label: "Terms & Conditions" },
-                    ].map((option) => (
-                      <label key={option.key} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          checked={invoiceSettings[option.key as keyof InvoiceSettings] as boolean}
-                          onChange={(e) => setInvoiceSettings({ ...invoiceSettings, [option.key]: e.target.checked })}
-                        />
-                        <span className="text-sm text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Footer Text */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Footer Text
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={3}
-                    value={invoiceSettings.footerText}
-                    onChange={(e) => setInvoiceSettings({ ...invoiceSettings, footerText: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* User Preferences Tab */}
-            {activeTab === "preferences" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">User Preferences</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Language
-                    </label>
-                    <select
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={userPreferences.language}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, language: e.target.value })}
-                    >
-                      <option value="en">English</option>
-                      <option value="sw">Swahili</option>
-                    </select>
+                  <div className="md:col-span-2">
+                    {renderInput("Address Line 2", company.address2, v => setCompany({ ...company, address2: v }))}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Theme
-                    </label>
-                    <select
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={userPreferences.theme}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, theme: e.target.value as "light" | "dark" | "auto" })}
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="auto">Auto</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      checked={userPreferences.autoSaveDrafts}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, autoSaveDrafts: e.target.checked })}
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Auto-save Drafts</span>
-                      <p className="text-xs text-gray-500">Automatically save invoice drafts as you work</p>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      checked={userPreferences.notifications}
-                      onChange={(e) => setUserPreferences({ ...userPreferences, notifications: e.target.checked })}
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Enable Notifications</span>
-                      <p className="text-xs text-gray-500">Receive notifications for important events</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Notifications Tab */}
-            {activeTab === "notifications" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Notification Settings</h2>
-                <p className="text-sm text-gray-600">Choose how you want to receive notifications</p>
-
-                <div className="space-y-4">
-                  {[
-                    { key: "email", label: "Email Notifications", description: "Receive notifications via email" },
-                    { key: "sms", label: "SMS Notifications", description: "Receive notifications via SMS" },
-                    { key: "push", label: "Push Notifications", description: "Receive browser push notifications" },
-                    { key: "inApp", label: "In-App Notifications", description: "Show notifications within the app" },
-                  ].map((option) => (
-                    <label key={option.key} className="flex items-center gap-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        checked={notificationSettings[option.key as keyof NotificationSettings]}
-                        onChange={(e) => setNotificationSettings({ ...notificationSettings, [option.key]: e.target.checked })}
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">{option.label}</span>
-                        <p className="text-xs text-gray-500">{option.description}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* System Settings Tab */}
-            {activeTab === "system" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">System Settings</h2>
-
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700 mb-4">Backup Configuration</h3>
-                  
-                  <div className="space-y-4 mb-6">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        checked={systemSettings.backupEnabled}
-                        onChange={(e) => setSystemSettings({ ...systemSettings, backupEnabled: e.target.checked })}
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Enable Automatic Backups</span>
-                        <p className="text-xs text-gray-500">Automatically backup your data at regular intervals</p>
-                      </div>
-                    </label>
-                  </div>
-
-                  {systemSettings.backupEnabled && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Backup Path
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={systemSettings.backupPath}
-                          onChange={(e) => setSystemSettings({ ...systemSettings, backupPath: e.target.value })}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Auto-Backup Interval (minutes)
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={systemSettings.autoBackupInterval}
-                          onChange={(e) => setSystemSettings({ ...systemSettings, autoBackupInterval: Number(e.target.value) })}
-                          min="5"
-                          max="1440"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Maximum Backups to Keep
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={systemSettings.maxBackups}
-                          onChange={(e) => setSystemSettings({ ...systemSettings, maxBackups: Number(e.target.value) })}
-                          min="1"
-                          max="100"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Last Backup
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                          value={systemSettings.lastBackupDate || "Never"}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-700 mb-4">Data Management</h3>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("This will clear all invoices, clients, and stock data. Are you sure?")) {
-                        localStorage.clear();
-                        window.location.reload();
+                  <div className="md:col-span-2 mt-4 p-6 border-2 border-dashed border-gray-300 hover:border-[#0099ff] rounded-xl bg-gray-50 flex flex-col items-center justify-center text-center transition-colors cursor-pointer"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            setCompany({ ...company, logoPath: ev.target.result as string });
+                          }
+                        };
+                        reader.readAsDataURL(file);
                       }
                     }}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
-                    Clear All Data
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">Warning: This action cannot be undone</p>
+                    <div className="mb-4 h-24 w-auto flex items-center justify-center bg-white p-2 rounded shadow-sm">
+                      <img src={company.logoPath} alt="Logo Preview" className="max-h-full max-w-full object-contain" onError={(e) => (e.currentTarget.src = logo)} />
+                    </div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Company Logo</label>
+                    <p className="text-xs text-gray-500 mb-3">Drag and drop an image file here, or paste the URL below.</p>
+                    <div className="flex gap-2 w-full max-w-md">
+                      <input
+                        type="text"
+                        value={company.logoPath}
+                        onChange={(e) => setCompany({ ...company, logoPath: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:border-[#0099ff] outline-none"
+                        placeholder="/src/assets/logo.jpg"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">Enter the asset path or URL. Recommended size: 200x120px</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Invoice Settings */}
+            {activeTab === 'invoice' && (
+              <div className="p-8 animate-fade-in">
+                <div className="mb-8 border-b border-gray-100 pb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Invoicing Configuration</h2>
+                  <p className="text-gray-500 mt-1">Customize how your documents look and behave</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-100 pb-2">Format & Style</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {renderSelect("Currency", invoiceSettings.currency, [
+                        { value: "Ksh", label: "Kenyan Shilling (Ksh)" },
+                        { value: "USD", label: "US Dollar ($)" }
+                      ], v => setInvoiceSettings({ ...invoiceSettings, currency: v as any }))}
+
+                      {renderSelect("Number Format", invoiceSettings.numberFormat, [
+                        { value: "comma", label: "1,234.56" },
+                        { value: "decimal", label: "1234.56" },
+                        { value: "compact", label: "1.2k" }
+                      ], v => setInvoiceSettings({ ...invoiceSettings, numberFormat: v as any }))}
+
+                      {renderSelect("Page Size", invoiceSettings.pageSize, [
+                        { value: "a4", label: "A4" },
+                        { value: "letter", label: "Letter" }
+                      ], v => setInvoiceSettings({ ...invoiceSettings, pageSize: v as any }))}
+
+                      {renderSelect("Font Family", invoiceSettings.fontFamily, [
+                        { value: "Helvetica", label: "Helvetica (Clean)" },
+                        { value: "Times New Roman", label: "Times New Roman (Serif)" },
+                        { value: "Courier New", label: "Courier (Monospace)" }
+                      ], v => setInvoiceSettings({ ...invoiceSettings, fontFamily: v as any }))}
+                    </div>
+
+                    <div className="mt-8">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Default Footer Text</label>
+                      <textarea
+                        value={invoiceSettings.footerText}
+                        onChange={(e) => setInvoiceSettings({ ...invoiceSettings, footerText: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm text-gray-600"
+                        placeholder="e.g. Thank you for your business..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-100 pb-2">Visibility</h3>
+                    <div className="space-y-3">
+                      {renderToggle("Show Header", "Include company header", invoiceSettings.includeHeader, v => setInvoiceSettings({ ...invoiceSettings, includeHeader: v }))}
+                      {renderToggle("Show Footer", "Include footer text", invoiceSettings.includeFooter, v => setInvoiceSettings({ ...invoiceSettings, includeFooter: v }))}
+                      {renderToggle("Watermark", "Background branding", invoiceSettings.includeWatermark, v => setInvoiceSettings({ ...invoiceSettings, includeWatermark: v }))}
+                      {renderToggle("Freight Col", "Show shipping/freight", invoiceSettings.includeFreight, v => setInvoiceSettings({ ...invoiceSettings, includeFreight: v }))}
+                      {renderToggle("Payment Info", "Bank details block", invoiceSettings.includePaymentDetails, v => setInvoiceSettings({ ...invoiceSettings, includePaymentDetails: v }))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* System & Preferences Settings */}
+            {activeTab === 'system' && (
+              <div className="p-8 animate-fade-in">
+                <div className="mb-8 border-b border-gray-100 pb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">System & Preferences</h2>
+                  <p className="text-gray-500 mt-1">Application behavior, backups, and data management</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">User Preferences</h3>
+                    <div className="space-y-4">
+                      {renderSelect("Theme Mode", userPreferences.theme, [
+                        { value: "light", label: "Light Mode" },
+                        { value: "dark", label: "Dark Mode" },
+                        { value: "auto", label: "System Default" }
+                      ], v => setUserPreferences({ ...userPreferences, theme: v as any }))}
+
+                      {renderSelect("Language", userPreferences.language, [
+                        { value: "en", label: "English" },
+                        { value: "sw", label: "Swahili" }
+                      ], v => setUserPreferences({ ...userPreferences, language: v }))}
+
+                      <div className="pt-2">
+                        {renderToggle("Auto-Save", "Save drafts automatically", userPreferences.autoSaveDrafts, v => setUserPreferences({ ...userPreferences, autoSaveDrafts: v }))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Data Management</h3>
+                    <div className="bg-red-50 p-6 rounded-xl border border-red-100">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-red-100 text-red-600 rounded-lg">
+                          <FaExclamationTriangle size={24} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-red-800">Advanced Actions</h4>
+                          <p className="text-sm text-red-600 mt-1 mb-4">
+                            Resetting data is irreversible. Please proceed with caution.
+                          </p>
+                          <button
+                            onClick={clearAllData}
+                            className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                          >
+                            <FaTrash size={14} /> Clear All App Data
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-10 pt-8 border-t border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Notification Channels</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderToggle("Email Alerts", "Send copies via email", notificationSettings.email, v => setNotificationSettings({ ...notificationSettings, email: v }))}
+                    {renderToggle("In-App Alerts", "Show toast messages", notificationSettings.inApp, v => setNotificationSettings({ ...notificationSettings, inApp: v }))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* About Tab */}
-            {activeTab === "about" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">About</h2>
-
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{appSettings.appName}</h3>
-                  <p className="text-sm text-gray-600">Invoice Management System</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Version</p>
-                    <p className="text-lg font-semibold text-gray-900">{appSettings.version}</p>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Build Date</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {new Date(appSettings.buildDate).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Last Saved</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {appSettings.lastSaved ? new Date(appSettings.lastSaved).toLocaleString() : "Never"}
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Company</p>
-                    <p className="text-lg font-semibold text-gray-900">{company.name}</p>
+            {activeTab === 'about' && (
+              <div className="p-8 animate-fade-in flex flex-col items-center justify-center min-h-[400px] text-center">
+                <div className="bg-gradient-to-br from-brand-50 to-indigo-50 p-10 rounded-2xl border border-brand-100 mb-8 w-full max-w-lg">
+                  <img src={logo} alt="KONSUT Ltd" className="h-32 mx-auto mb-6 object-contain drop-shadow-sm" />
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{appSettings.appName}</h2>
+                  <p className="text-brand-600 font-medium tracking-wide">Enterprise Edition</p>
+                  <div className="mt-6 flex justify-center gap-4 text-sm text-gray-500">
+                    <span>Version {appSettings.version}</span>
+                    <span>•</span>
+                    <span>Build {new Date(appSettings.buildDate).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-700 mb-3">Technology Stack</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {["React", "TypeScript", "Vite", "Tailwind CSS", "jsPDF", "Recharts"].map((tech) => (
-                      <span key={tech} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
+                <div className="max-w-2xl text-center space-y-2">
+                  <p className="text-gray-600">
+                    Designed and developed for <strong>{company.name}</strong> to streamline invoicing and client management operations.
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    &copy; {new Date().getFullYear()} KONSUT Ltd. All rights reserved.
+                  </p>
                 </div>
               </div>
             )}
+
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={saveSettings}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <FaSave /> Save All Settings
-          </button>
-          <button
-            onClick={resetToDefaults}
-            className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center gap-2"
-          >
-            <FaUndo /> Reset to Defaults
-          </button>
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

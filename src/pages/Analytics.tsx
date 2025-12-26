@@ -10,6 +10,8 @@ import {
   FaChartLine, FaChartBar, FaChartPie, FaDollarSign, FaFileInvoice,
   FaUsers, FaTruck, FaCalendarAlt, FaDownload, FaSync, FaTrash
 } from "react-icons/fa";
+import logo from "../assets/logo.jpg";
+
 
 // Types
 interface InvoiceItem {
@@ -236,9 +238,12 @@ const Analytics: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-            <p className="text-gray-600">KONSUT Ltd - Business Insights</p>
+          <div className="flex items-center gap-4">
+            <img src={logo} alt="KONSUT Ltd" className="h-16 w-auto object-contain" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+              <p className="text-gray-600">KONSUT Ltd - Business Insights</p>
+            </div>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
             <button onClick={exportData} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
@@ -254,7 +259,7 @@ const Analytics: React.FC = () => {
         <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col md:flex-row gap-4 items-center">
           <div className="flex items-center gap-2"><FaCalendarAlt className="text-gray-500" /><span className="font-medium">Date Range:</span></div>
           <div className="flex gap-2">
-            {["7days","30days","90days","1year"].map(dr => (
+            {["7days", "30days", "90days", "1year"].map(dr => (
               <button
                 key={dr}
                 onClick={() => setDateRange(dr as any)}
@@ -327,8 +332,8 @@ const Analytics: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><FaChartPie className="text-blue-600" />Invoice Status</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie data={statusDistribution} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${((percent as number)*100).toFixed(0)}%`}>
-                  {statusDistribution.map((entry,index)=><Cell key={index} fill={entry.color}/>)}
+                <Pie data={statusDistribution} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}>
+                  {statusDistribution.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(value) => [`${value} invoices`]} />
               </PieChart>
