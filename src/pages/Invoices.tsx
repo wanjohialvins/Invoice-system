@@ -6,6 +6,7 @@ import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock } from "react-ic
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import logo from "../assets/logo.jpg"; // Import the logo directly
+import { generateInvoicePDF } from "../utils/pdfGenerator";
 
 // Define constants directly in this file to avoid import issues
 const INVOICES_KEY = "invoices";
@@ -73,7 +74,7 @@ const getImageDataUrl = (img: HTMLImageElement): Promise<string> => {
 const generatePDF = async (invoice: InvoiceData) => {
   try {
     console.log("Generating PDF for invoice:", invoice.id);
-    
+
     // Use the imported jsPDF directly
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -82,7 +83,7 @@ const generatePDF = async (invoice: InvoiceData) => {
     // Load and add logo
     const logoImg = new Image();
     logoImg.src = logo;
-    
+
     // Wait for logo to load
     await new Promise((resolve, reject) => {
       logoImg.onload = resolve;
@@ -90,7 +91,7 @@ const generatePDF = async (invoice: InvoiceData) => {
     });
 
     const logoDataUrl = await getImageDataUrl(logoImg);
-    
+
     // Add logo to the top right
     const logoWidth = 40; // Width in mm
     const logoHeight = (logoImg.height / logoImg.width) * logoWidth; // Maintain aspect ratio
@@ -171,7 +172,7 @@ const generatePDF = async (invoice: InvoiceData) => {
     doc.setFont("helvetica", "bold");
     doc.text("Status:", rightX, cursorY + 21);
     doc.setFont("helvetica", "normal");
-    
+
     // Add status with color
     if (invoice?.status === "Paid") {
       doc.setTextColor(0, 128, 0);
@@ -201,7 +202,7 @@ const generatePDF = async (invoice: InvoiceData) => {
         doc.text("Qty", margin + 60, tableY);
         doc.text("Price", margin + 80, tableY);
         doc.text("Total", margin + 120, tableY);
-        
+
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         items.forEach((item, index) => {
@@ -237,13 +238,13 @@ const generatePDF = async (invoice: InvoiceData) => {
           head: [head],
           body,
           theme: "grid",
-          headStyles: { 
+          headStyles: {
             fillColor: [0, 127, 255],
             textColor: 255,
             fontStyle: "bold"
           },
-          styles: { 
-            fontSize: 10, 
+          styles: {
+            fontSize: 10,
             cellPadding: 4,
             lineColor: [200, 200, 200]
           },
@@ -378,26 +379,26 @@ const Invoices: React.FC = () => {
       console.log("Loading invoices from localStorage...");
       setLoading(true);
       setError(null);
-      
+
       const raw = localStorage.getItem(INVOICES_KEY);
       console.log("Raw data from localStorage:", raw);
-      
+
       if (!raw) {
         console.log("No invoices found in localStorage");
         setInvoices([]);
         return;
       }
-      
+
       const parsed = JSON.parse(raw);
       console.log("Parsed invoices:", parsed);
-      
+
       // Ensure we have an array
       if (!Array.isArray(parsed)) {
         console.warn("Invoices data is not an array:", parsed);
         setInvoices([]);
         return;
       }
-      
+
       // Validate and normalize each invoice
       const normalizedInvoices = parsed.map((inv, index) => {
         try {
@@ -406,36 +407,36 @@ const Invoices: React.FC = () => {
             console.warn(`Invoice at index ${index} is not an object:`, inv);
             return null;
           }
-          
+
           // Ensure required fields exist
           if (!inv.id) {
             console.warn(`Invoice at index ${index} missing id, generating one`);
             inv.id = `INV-${Date.now()}-${index}`;
           }
-          
+
           // Ensure status is valid
           if (!inv.status || !["Paid", "Pending", "Overdue"].includes(inv.status)) {
             console.warn(`Invoice ${inv.id} has invalid status, setting to Pending`);
             inv.status = "Pending";
           }
-          
+
           // Ensure customer object exists
           if (!inv.customer) {
             inv.customer = {};
           }
-          
+
           // Ensure items array exists
           if (!inv.items || !Array.isArray(inv.items)) {
             inv.items = [];
           }
-          
+
           return inv as InvoiceData;
         } catch (err) {
           console.error(`Error normalizing invoice at index ${index}:`, err);
           return null;
         }
       }).filter(Boolean) as InvoiceData[];
-      
+
       console.log("Normalized invoices:", normalizedInvoices);
       setInvoices(normalizedInvoices);
     } catch (error) {
@@ -482,10 +483,10 @@ const Invoices: React.FC = () => {
     (inv) => {
       // Ensure inv exists and has the required properties
       if (!inv) return false;
-      
+
       const customerName = inv?.customer?.name || inv?.clientName || "";
       const invoiceId = inv?.id || "";
-      
+
       return (
         (customerName && customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (invoiceId && invoiceId.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -510,7 +511,7 @@ const Invoices: React.FC = () => {
   // Check for overdue invoices and update their status
   useEffect(() => {
     if (invoices.length === 0) return;
-    
+
     let hasChanges = false;
     const updated = invoices.map(inv => {
       const dueDate = inv?.dueDate;
@@ -520,7 +521,7 @@ const Invoices: React.FC = () => {
       }
       return inv;
     });
-    
+
     if (hasChanges) {
       try {
         setInvoices(updated);
@@ -609,7 +610,7 @@ const Invoices: React.FC = () => {
                       const issuedDate = inv?.issuedDate || inv?.date || "N/A";
                       const dueDate = inv?.dueDate || "N/A";
                       const total = inv?.grandTotal || inv?.total || 0;
-                      
+
                       return (
                         <tr key={inv?.id || Math.random().toString()} className="hover:bg-gray-50">
                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -661,7 +662,7 @@ const Invoices: React.FC = () => {
                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-2">
                               <button
-                                onClick={() => generatePDF(inv)}
+                                onClick={() => generateInvoicePDF(inv as any)}
                                 className="text-blue-600 hover:text-blue-900"
                                 title="Download PDF"
                               >

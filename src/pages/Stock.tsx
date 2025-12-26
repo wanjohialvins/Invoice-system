@@ -1,4 +1,4 @@
-// src/pages/Stock.tsx
+ // src/pages/Stock.tsx
 // Final integrated Stock manager for KONSUT Ltd
 // - Auto freight calculation (weight * freightRate)
 // - Currency sync Ksh <-> USD (currencyRate persisted)

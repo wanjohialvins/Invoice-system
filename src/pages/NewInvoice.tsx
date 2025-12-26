@@ -2,7 +2,8 @@
 // Final consolidated New Quotation (KONSUT Ltd) - Enhanced Data Persistence
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { jsPDF } from "jspdf";
+
+import { generateInvoicePDF } from "../utils/pdfGenerator";
 import {
   FaPlus,
   FaMinus,
@@ -132,7 +133,7 @@ const NewInvoice: React.FC = () => {
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [customerAddress, setCustomerAddress] = useState<string>("");
-  const [displayCurrency, setDisplayCurrency] = useState<"Ksh" | "USD">("Ksh"); 
+  const [displayCurrency, setDisplayCurrency] = useState<"Ksh" | "USD">("Ksh");
 
   // Due date input: user picks a date; daysRemaining auto-calculated
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -246,7 +247,7 @@ const NewInvoice: React.FC = () => {
       ...additionalData,
       lastSaved: new Date().toISOString()
     };
-    
+
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave));
       localStorage.setItem(FREIGHT_RATE_KEY, String(freightRate));
@@ -270,27 +271,27 @@ const NewInvoice: React.FC = () => {
      ---------------------------- */
   const validateCustomerInfo = () => {
     const errors: Record<string, string> = {};
-    
+
     if (!customerName.trim()) {
       errors.customerName = "Customer name is required";
     }
-    
+
     if (!customerPhone.trim()) {
       errors.customerPhone = "Phone number is required";
     } else if (!/^\+?\d{7,15}$/.test(customerPhone)) {
       errors.customerPhone = "Please enter a valid phone number";
     }
-    
+
     if (!customerEmail.trim()) {
       errors.customerEmail = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
       errors.customerEmail = "Please enter a valid email address";
     }
-    
+
     if (!dueDate) {
       errors.dueDate = "Due date is required";
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -404,30 +405,14 @@ const NewInvoice: React.FC = () => {
     if (!confirm("Remove this line?")) return;
     setLines((s) => s.filter((_, i) => i !== index));
     pushToast("Line removed", "info");
-  };
-
-  /* ----------------------------
-     Save Draft (explicit save with feedback)
-     ---------------------------- */
-  const saveDraft = () => {
-    const success = saveAllData({ 
-      action: "save_draft",
-      timestamp: new Date().toISOString()
-    });
-    
-    if (success) {
-      pushToast("Draft saved successfully", "success");
-    } else {
-      pushToast("Failed to save draft", "error");
-    }
-  };
+  }
 
   /* ----------------------------
      Clear Data (does NOT clear stock)
      ---------------------------- */
   const clearData = () => {
     if (!confirm("Clear invoice data? This will NOT remove stock items.")) return;
-    
+
     try {
       localStorage.removeItem(DRAFT_KEY);
       setCustomerName("");
@@ -489,7 +474,7 @@ const NewInvoice: React.FC = () => {
       localStorage.setItem(LAST_SAVED_QUOTE_KEY, JSON.stringify(invoiceObj));
 
       // Also save current state as draft
-      saveAllData({ 
+      saveAllData({
         action: "save_quotation",
         quoteId: invoiceObj.id,
         timestamp: new Date().toISOString()
@@ -517,210 +502,36 @@ const NewInvoice: React.FC = () => {
     }
 
     try {
-      const doc = new jsPDF({ unit: "mm", format: "a4" });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 14;
+      // Prepare invoice data in the format expected by generateInvoicePDF
+      const invoiceData = {
+        id: `QUO-${Math.floor(Math.random() * 1000000)}`,
+        date: new Date().toISOString(),
+        issuedDate,
+        dueDate: dueDate || "",
+        customer: {
+          id: customerId,
+          name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
+          address: customerAddress
+        },
+        items: lines,
+        subtotal,
+        tax: 0, // Quotations don't have tax
+        productFreightTotal,
+        grandTotal,
+        freightRate,
+        currencyRate: usdToKshRate,
+        status: "Pending"
+      };
 
-      // Logo -> dataURL
-      const logoData = await loadImageAsDataURL(COMPANY.logoPath);
-
-      // Header (left: company info, right: logo)
-      let y = 12;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(COMPANY.name, margin, y);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      y += 5;
-      doc.text(COMPANY.address1, margin, y);
-      y += 5;
-      doc.text(COMPANY.address2, margin, y);
-      y += 5;
-      doc.text(`Phone: ${COMPANY.phone}`, margin, y);
-      y += 5;
-      doc.text(`Email: ${COMPANY.email}`, margin, y);
-      y += 5;
-      doc.text(`PIN: ${COMPANY.pin}`, margin, y);
-
-      // Logo on right
-      if (logoData) {
-        const imgW = 34;
-        doc.addImage(logoData, "PNG", pageWidth - margin - imgW, 8, imgW, imgW * 0.6);
-      }
-
-      // Title centered (azure)
-      doc.setFontSize(16);
-      doc.setTextColor(0, 127, 255);
-      doc.setFont("helvetica", "bold");
-      doc.text("QUOTATION", pageWidth / 2, y + 12, { align: "center" });
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-
-      // Customer & meta area
-      const cursorY = y + 22;
-      const leftX = margin;
-      const rightX = pageWidth / 2 + 8;
-
-      doc.setFont("helvetica", "bold");
-      doc.text("Bill To:", leftX, cursorY);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Customer ID: ${customerId}`, leftX, cursorY + 6);
-      doc.text(`Name: ${customerName || "-"}`, leftX, cursorY + 12);
-      doc.text(`Phone: ${customerPhone || "-"}`, leftX, cursorY + 18);
-      doc.text(`Email: ${customerEmail || "-"}`, leftX, cursorY + 24);
-      doc.text(`Address: ${customerAddress || "-"}`, leftX, cursorY + 30);
-
-      // Meta: quotation no, issued date, delivery
-      const quo = `QUO-${Math.floor(Math.random() * 1000000)}`;
-      doc.setFont("helvetica", "bold");
-      doc.text("Quotation No:", rightX, cursorY);
-      doc.setFont("helvetica", "normal");
-      doc.text(quo, rightX + 28, cursorY);
-      doc.setFont("helvetica", "bold");
-      doc.text("Issued on:", rightX, cursorY + 6);
-      doc.setFont("helvetica", "normal");
-      doc.text(issuedDate, rightX + 28, cursorY + 6);
-      doc.setFont("helvetica", "bold");
-      doc.text("Deadline Date:", rightX, cursorY + 12);
-      doc.setFont("helvetica", "normal");
-      doc.text(dueDate || "-", rightX + 28, cursorY + 12);
-
-      // Table data
-      const includeFreightCol = productFreightTotal > 0;
-      const includeDesc = includeDescriptionsInPDF && showDescriptions;
-
-      const head: string[] = [
-        includeDesc ? "Description" : "Item",
-        "Category",
-        "Qty",
-        "Unit Price (Ksh)",
-        "Total (Ksh)",
-        ...(includeFreightCol ? ["Freight (Ksh)"] : []),
-      ];
-
-      const body = lines.map((l) => [
-        includeDesc ? (l.description || l.name) : l.name,
-        l.category,
-        String(l.quantity),
-        l.unitPrice.toFixed(2),
-        (l.unitPrice * l.quantity).toFixed(2),
-        ...(includeFreightCol ? [(l.productFreight || 0).toFixed(2)] : []),
-      ]);
-
-      // Try to use autoTable if available, otherwise use manual table
-      if (typeof (doc as any).autoTable === "function") {
-        // Use autoTable
-        (doc as any).autoTable({
-          startY: cursorY + 36,
-          head: [head],
-          body,
-          theme: "grid",
-          headStyles: { fillColor: [245, 245, 245] },
-          styles: { fontSize: 9, cellPadding: 3 },
-          margin: { left: margin, right: margin },
-        });
-      } else {
-        // Manual table creation as fallback
-        console.warn("autoTable not available, using manual table creation");
-        
-        let tableY = cursorY + 36;
-        const tableStartX = margin;
-        const colWidths = includeFreightCol 
-          ? [60, 25, 15, 30, 30, 25] 
-          : [70, 25, 15, 35, 35];
-        
-        // Table header
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.setFillColor(245, 245, 245);
-        
-        let currentX = tableStartX;
-        head.forEach((header, index) => {
-          doc.rect(currentX, tableY, colWidths[index], 8);
-          doc.text(header, currentX + 2, tableY + 5);
-          currentX += colWidths[index];
-        });
-        
-        // Table body
-        doc.setFont("helvetica", "normal");
-        tableY += 8;
-        
-        body.forEach((row) => {
-          currentX = tableStartX;
-          row.forEach((cell, index) => {
-            doc.rect(currentX, tableY, colWidths[index], 7);
-            // Truncate text if too long
-            const text = String(cell);
-            const maxWidth = colWidths[index] - 4;
-            const truncated = doc.splitTextToSize(text, maxWidth);
-            doc.text(truncated[0] || "", currentX + 2, tableY + 4);
-            currentX += colWidths[index];
-          });
-          tableY += 7;
-        });
-      }
-
-      // Get the Y position after the table
-      const afterTableY = typeof (doc as any).lastAutoTable?.finalY === "number" 
-        ? (doc as any).lastAutoTable.finalY 
-        : cursorY + 36 + (body.length * 7) + 20;
-
-      // Totals after table
-      let ty = afterTableY;
-      const totalsX = pageWidth - margin - 80;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`Subtotal: Ksh ${subtotal.toFixed(2)}`, totalsX, ty);
-      ty += 6;
-      doc.text(`Product Freight: Ksh ${productFreightTotal.toFixed(2)}`, totalsX, ty);
-      ty += 6;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(`Grand Total: Ksh ${grandTotal.toFixed(2)}`, totalsX, ty);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-
-      // Payment details (left)
-      const py = ty + 12;
-      const px = margin;
-      doc.setFont("helvetica", "bold");
-      doc.text("Payment Details", px, py);
-      doc.setFont("helvetica", "normal");
-      let pyy = py + 6;
-      doc.text("Bank: I&M BANK", px, pyy); pyy += 5;
-      doc.text("Bank Branch: RUIRU BRANCH", px, pyy); pyy += 5;
-      doc.text("Account No.(USD): 05507023231250", px, pyy); pyy += 5;
-      doc.text("SWIFT CODE: IMBLKENA", px, pyy); pyy += 5;
-      doc.text("BANK CODE: 57", px, pyy); pyy += 5;
-      doc.text("BRANCH CODE: 055", px, pyy);
-
-      // Footer
-      const footerY = doc.internal.pageSize.getHeight() - 18;
-      doc.setFontSize(9);
-      doc.setTextColor(100);
-      const footerLine =
-        "If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya";
-      doc.text(footerLine, margin, footerY, { maxWidth: doc.internal.pageSize.getWidth() - margin * 2 });
-
-      // Page numbers
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.setTextColor(120);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 6, { align: "right" });
-      }
-
-      // Save PDF
-      const pdfFileName = `KONSUT_Quotation_${Date.now()}.pdf`;
-      doc.save(pdfFileName);
+      // Use the professional PDF generator
+      await generateInvoicePDF(invoiceData as any, "QUOTATION");
 
       // Save PDF generation record
       const pdfRecord = {
-        fileName: pdfFileName,
-        quoteNumber: quo,
+        fileName: `KONSUT_Invoice_${invoiceData.id}_${Date.now()}.pdf`,
+        quoteNumber: invoiceData.id,
         generatedAt: new Date().toISOString(),
         customerName,
         totalAmount: grandTotal,
@@ -733,10 +544,10 @@ const NewInvoice: React.FC = () => {
       localStorage.setItem("konsut_pdf_history", JSON.stringify(pdfHistory.slice(0, 50))); // Keep last 50
 
       // Save current state with PDF info
-      saveAllData({ 
+      saveAllData({
         action: "generate_pdf",
-        pdfFileName,
-        quoteNumber: quo,
+        pdfFileName: pdfRecord.fileName,
+        quoteNumber: invoiceData.id,
         timestamp: new Date().toISOString()
       });
 
@@ -802,9 +613,6 @@ const NewInvoice: React.FC = () => {
 
         {/* Desktop: labeled buttons */}
         <div className="hidden md:flex items-center gap-2 ml-2">
-          <button onClick={saveDraft} className="px-3 py-1 rounded bg-yellow-500 text-white flex items-center gap-2">
-            <FaSave /> Save Draft
-          </button>
           <button onClick={clearData} className="px-3 py-1 rounded bg-red-500 text-white flex items-center gap-2">
             <FaTrash /> Clear Data
           </button>
@@ -821,7 +629,6 @@ const NewInvoice: React.FC = () => {
 
         {/* Mobile: icons only */}
         <div className="flex md:hidden items-center gap-2 ml-2">
-          <button onClick={saveDraft} className="p-2 rounded bg-yellow-500 text-white"><FaSave /></button>
           <button onClick={clearData} className="p-2 rounded bg-red-500 text-white"><FaTrash /></button>
           <button onClick={seedSampleStock} className="p-2 rounded bg-gray-200 text-gray-800"><FaSeedling /></button>
           <button onClick={saveQuotation} className="p-2 rounded bg-green-600 text-white"><FaSave /></button>
@@ -854,52 +661,52 @@ const NewInvoice: React.FC = () => {
             <div>
               <p><strong>Customer ID:</strong> {customerId}</p>
               <div className="mt-2">
-                <input 
-                  placeholder="Customer Name" 
-                  value={customerName} 
-                  onChange={(e) => setCustomerName(e.target.value)} 
-                  className={`border p-2 rounded w-full ${validationErrors.customerName ? 'border-red-500' : ''}`} 
+                <input
+                  placeholder="Customer Name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className={`border p-2 rounded w-full ${validationErrors.customerName ? 'border-red-500' : ''}`}
                 />
                 {validationErrors.customerName && <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>}
               </div>
               <div className="flex gap-2 mt-2">
                 <div className="flex-1">
-                  <input 
-                    placeholder="Phone" 
-                    value={customerPhone} 
-                    onChange={(e) => setCustomerPhone(e.target.value)} 
-                    className={`border p-2 rounded w-full ${validationErrors.customerPhone ? 'border-red-500' : ''}`} 
+                  <input
+                    placeholder="Phone"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className={`border p-2 rounded w-full ${validationErrors.customerPhone ? 'border-red-500' : ''}`}
                   />
                   {validationErrors.customerPhone && <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>}
                 </div>
                 <div className="flex-1">
-                  <input 
-                    placeholder="Email" 
-                    value={customerEmail} 
-                    onChange={(e) => setCustomerEmail(e.target.value)} 
-                    className={`border p-2 rounded w-full ${validationErrors.customerEmail ? 'border-red-500' : ''}`} 
+                  <input
+                    placeholder="Email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className={`border p-2 rounded w-full ${validationErrors.customerEmail ? 'border-red-500' : ''}`}
                   />
                   {validationErrors.customerEmail && <p className="text-red-500 text-xs mt-1">{validationErrors.customerEmail}</p>}
                 </div>
               </div>
-              <textarea 
-                placeholder="Address" 
-                value={customerAddress} 
-                onChange={(e) => setCustomerAddress(e.target.value)} 
-                className="border p-2 rounded w-full mt-2" 
-                rows={2} 
+              <textarea
+                placeholder="Address"
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                className="border p-2 rounded w-full mt-2"
+                rows={2}
               />
               <div className="mt-2 flex gap-2 items-center">
-                <label className="text-sm">Delivery Deadline</label>
-                <input 
-                  type="date" 
-                  value={dueDate} 
-                  onChange={(e) => setDueDate(e.target.value)} 
-                  className={`border p-2 rounded ${validationErrors.dueDate ? 'border-red-500' : ''}`} 
+                <label className="text-sm">Valid Till</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={`border p-2 rounded ${validationErrors.dueDate ? 'border-red-500' : ''}`}
                 />
                 {validationErrors.dueDate && <p className="text-red-500 text-xs mt-1">{validationErrors.dueDate}</p>}
                 <div className="text-xs text-gray-600 ml-2">
-                  {dueDate ? `${Math.ceil((new Date(dueDate).getTime() - new Date(issuedDate).getTime()) / (1000*60*60*24))} day(s) left` : ""}
+                  {dueDate ? `${Math.ceil((new Date(dueDate).getTime() - new Date(issuedDate).getTime()) / (1000 * 60 * 60 * 24))} day(s) left` : ""}
                 </div>
               </div>
             </div>
@@ -914,9 +721,9 @@ const NewInvoice: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <button 
-              title="Toggle currency display" 
-              onClick={() => setDisplayCurrency(d => d === "Ksh" ? "USD" : "Ksh")} 
+            <button
+              title="Toggle currency display"
+              onClick={() => setDisplayCurrency(d => d === "Ksh" ? "USD" : "Ksh")}
               className="p-2 rounded bg-gray-100 hover:bg-gray-200"
             >
               <FaExchangeAlt /> {displayCurrency}
@@ -925,11 +732,11 @@ const NewInvoice: React.FC = () => {
               <FaExchangeAlt />
             </button>
             {showConversionInput && (
-              <input 
-                type="number" 
-                value={usdToKshRate} 
-                onChange={(e) => setUsdToKshRate(Number(e.target.value || 0))} 
-                className="border p-2 rounded w-40" 
+              <input
+                type="number"
+                value={usdToKshRate}
+                onChange={(e) => setUsdToKshRate(Number(e.target.value || 0))}
+                className="border p-2 rounded w-40"
               />
             )}
             <button title="Toggle descriptions visible in editor" onClick={() => setShowDescriptions(s => !s)} className="p-2 rounded bg-gray-100">
@@ -960,17 +767,17 @@ const NewInvoice: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-2 items-center mb-3">
             <div className="flex items-center gap-2 flex-1 w-full md:w-auto">
               <FaSearch />
-              <input 
-                placeholder={`Search ${activeCategory}...`} 
-                value={search[activeCategory]} 
-                onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))} 
-                className="border p-2 rounded w-full" 
+              <input
+                placeholder={`Search ${activeCategory}...`}
+                value={search[activeCategory]}
+                onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))}
+                className="border p-2 rounded w-full"
               />
             </div>
 
-            <select 
-              value={selectedId[activeCategory]} 
-              onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))} 
+            <select
+              value={selectedId[activeCategory]}
+              onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
               className="border p-2 rounded w-full md:w-2/3"
             >
               <option value="">Select {activeCategory}...</option>
@@ -982,12 +789,12 @@ const NewInvoice: React.FC = () => {
             </select>
 
             <div className="flex items-center gap-2">
-              <input 
-                type="number" 
-                min={1} 
-                value={selectedQty[activeCategory]} 
-                onChange={(e) => setSelectedQty((q) => ({ ...q, [activeCategory]: Math.max(1, Number(e.target.value || 1)) }))} 
-                className="w-20 border p-2 rounded text-right" 
+              <input
+                type="number"
+                min={1}
+                value={selectedQty[activeCategory]}
+                onChange={(e) => setSelectedQty((q) => ({ ...q, [activeCategory]: Math.max(1, Number(e.target.value || 1)) }))}
+                className="w-20 border p-2 rounded text-right"
               />
               <button onClick={() => handleAddSelected(activeCategory)} className="p-2 rounded bg-[#007FFF] text-white"><FaPlus /></button>
             </div>
@@ -1028,20 +835,20 @@ const NewInvoice: React.FC = () => {
                       </div>
                     </td>
                     <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD" 
-                        ? `$${(l.unitPrice / usdToKshRate).toFixed(2)}` 
+                      {displayCurrency === "USD"
+                        ? `$${(l.unitPrice / usdToKshRate).toFixed(2)}`
                         : `Ksh ${l.unitPrice.toLocaleString()}`
                       }
                     </td>
                     <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD" 
-                        ? `$${((l.unitPrice * l.quantity) / usdToKshRate).toFixed(2)}` 
+                      {displayCurrency === "USD"
+                        ? `$${((l.unitPrice * l.quantity) / usdToKshRate).toFixed(2)}`
                         : `Ksh ${(l.unitPrice * l.quantity).toLocaleString()}`
                       }
                     </td>
                     <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD" 
-                        ? `$${((l.productFreight || 0) / usdToKshRate).toFixed(2)}` 
+                      {displayCurrency === "USD"
+                        ? `$${((l.productFreight || 0) / usdToKshRate).toFixed(2)}`
                         : `Ksh ${(l.productFreight || 0).toLocaleString()}`
                       }
                     </td>
@@ -1065,7 +872,6 @@ const NewInvoice: React.FC = () => {
             </div>
 
             <div className="flex gap-2 items-center flex-wrap">
-              <button onClick={saveDraft} className="px-3 py-1 rounded bg-yellow-500 text-white flex items-center gap-2"><FaSave /> <span className="hidden md:inline">Save Draft</span></button>
               <button onClick={saveQuotation} className="px-3 py-1 rounded bg-green-600 text-white">Save Quotation</button>
               <button onClick={generatePDF} className="px-3 py-1 rounded bg-[#007FFF] text-white flex items-center gap-2"><FaFilePdf /> <span className="hidden md:inline">Download PDF</span></button>
             </div>

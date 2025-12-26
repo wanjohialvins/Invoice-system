@@ -906,7 +906,7 @@ const Clients: React.FC = () => {
                                 <button
                                   onClick={() => handleEdit(client)}
                                   className="text-green-600 hover:text-green-900"
-                                  title="Edit Client"
+                                  title="Edit  Client"
                                 >
                                   <FaEdit />
                                 </button>
