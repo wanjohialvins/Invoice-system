@@ -644,7 +644,7 @@ const NewInvoice: React.FC = () => {
      Toolbar (adaptive): search + actions
      ---------------------------- */
   const Toolbar = () => (
-    <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all">
+    <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all mb-6 rounded-lg">
       <div>
         <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
         <p className="text-sm text-gray-500">Create a new invoice or quotation</p>
@@ -694,7 +694,7 @@ const NewInvoice: React.FC = () => {
      Render
      ---------------------------- */
   return (
-    <div className="min-h-screen bg-gray-50 font-poppins text-gray-900">
+    <div className="bg-gray-50 font-poppins text-gray-900">
       <Toolbar />
 
       <div className="p-4 max-w-6xl mx-auto">

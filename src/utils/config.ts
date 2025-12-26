@@ -8,11 +8,11 @@
  */
 
 export const DEFAULT_COMPANY = {
-    name: "KONSUT Ltd",
+    name: "KONSUT LTD",
     address1: "P.O BOX 21162-00100",
     address2: "G.P.O NAIROBI",
     phone: "+254 700 420 897",
-    email: "info@konsutltd.co.ke",
+    email: "info@konsut.co.ke",
     pin: "P052435869T",
     logoPath: "/src/assets/logo.jpg",
 };
@@ -23,7 +23,7 @@ export const DEFAULT_INVOICE_SETTINGS = {
     includeTax: true,
     includeFreight: true,
     freightRate: 0, // Default to 0, usually dynamic
-    footerText: "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya",
+    footerText: "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya",
 };
 
 export const getCompanySettings = () => {

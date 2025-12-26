@@ -54,7 +54,7 @@ interface Client {
   email: string;
   address: string;
   company?: string;
-  notes?: string;
+  kraPin?: string;
   createdAt: string;
   updatedAt: string;
   source: 'invoice' | 'draft' | 'manual';
@@ -154,7 +154,7 @@ const Clients: React.FC = () => {
     email: "",
     address: "",
     company: "",
-    notes: ""
+    kraPin: ""
   });
 
   /* -------------------------------------------------------------------------- */
@@ -264,11 +264,11 @@ const Clients: React.FC = () => {
     if (!confirm("Add sample clients to your database?")) return;
 
     const dummyClients: Client[] = [
-      { id: "SEED-1", name: "Safaricom PLC", company: "Safaricom", phone: "+254 722 000 000", email: "procurement@safaricom.co.ke", address: "Safaricom House, Waiyaki Way, Nairobi", notes: "Major telecom client", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
-      { id: "SEED-2", name: "KCB Group", company: "KCB Bank", phone: "+254 711 000 000", email: "info@kcbgroup.com", address: "Kencom House, Nairobi CBD", notes: "Banking sector", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
-      { id: "SEED-3", name: "Davis & Shirtliff", company: "D&S", phone: "+254 722 123 456", email: "sales@dayliff.com", address: "Industrial Area, Nairobi", notes: "Water & Energy partner", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
-      { id: "SEED-4", name: "John Kamau", company: "Private", phone: "+254 700 111 222", email: "jkamau@gmail.com", address: "Runda Estate, House 45", notes: "Residential solar installation", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
-      { id: "SEED-5", name: "Tech Solutions Ltd", company: "Tech Solutions", phone: "+254 733 444 555", email: "admin@techsolutions.co.ke", address: "Westlands, The Mirage", notes: "IT Support contract", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' }
+      { id: "SEED-1", name: "Safaricom PLC", company: "Safaricom", phone: "+254 722 000 000", email: "procurement@safaricom.co.ke", address: "Safaricom House, Waiyaki Way, Nairobi", kraPin: "P051234567A", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
+      { id: "SEED-2", name: "KCB Group", company: "KCB Bank", phone: "+254 711 000 000", email: "info@kcbgroup.com", address: "Kencom House, Nairobi CBD", kraPin: "P051234568B", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
+      { id: "SEED-3", name: "Davis & Shirtliff", company: "D&S", phone: "+254 722 123 456", email: "sales@dayliff.com", address: "Industrial Area, Nairobi", kraPin: "P051234569C", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
+      { id: "SEED-4", name: "John Kamau", company: "Private", phone: "+254 700 111 222", email: "jkamau@gmail.com", address: "Runda Estate, House 45", kraPin: "A001234567D", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' },
+      { id: "SEED-5", name: "Tech Solutions Ltd", company: "Tech Solutions", phone: "+254 733 444 555", email: "admin@techsolutions.co.ke", address: "Westlands, The Mirage", kraPin: "P051234570E", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'manual' }
     ];
 
     const updated = [...clients, ...dummyClients];
@@ -313,7 +313,7 @@ const Clients: React.FC = () => {
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(updated));
     setShowForm(false);
     setEditingClient(null);
-    setFormData({ name: "", phone: "", email: "", address: "", company: "", notes: "" });
+    setFormData({ name: "", phone: "", email: "", address: "", company: "", kraPin: "" });
   };
 
   // CRUD Actions: Delete single client
@@ -336,7 +336,7 @@ const Clients: React.FC = () => {
       email: client.email,
       address: client.address,
       company: client.company || "",
-      notes: client.notes || ""
+      kraPin: client.kraPin || ""
     });
     setShowForm(true);
   };
@@ -385,7 +385,7 @@ const Clients: React.FC = () => {
             <button onClick={syncClientsFromInvoices} disabled={syncing} className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
               <FaSync className={syncing ? "animate-spin" : ""} /> Sync
             </button>
-            <button onClick={() => { setEditingClient(null); setFormData({ name: "", phone: "", email: "", address: "", company: "", notes: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#0099ff] text-white rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 font-medium">
+            <button onClick={() => { setEditingClient(null); setFormData({ name: "", phone: "", email: "", address: "", company: "", kraPin: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#0099ff] text-white rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 font-medium">
               <FaPlus /> Add Client
             </button>
           </div>
@@ -531,8 +531,8 @@ const Clients: React.FC = () => {
                 <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border p-2 rounded mt-1 outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500" rows={2} />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase">Notes</label>
-                <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full border p-2 rounded mt-1 outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500" rows={2} />
+                <label className="text-xs font-semibold text-gray-500 uppercase">KRA PIN</label>
+                <input value={formData.kraPin} onChange={e => setFormData({ ...formData, kraPin: e.target.value })} className="w-full border p-2 rounded mt-1 outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500" placeholder="P051234567A" />
               </div>
               <button type="submit" className="w-full bg-[#0099ff] text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">
                 {editingClient ? "Update Client" : "Save Client"}
@@ -584,10 +584,10 @@ const Clients: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <h3 className="font-bold text-gray-800 mb-2">Address & Notes</h3>
+                <h3 className="font-bold text-gray-800 mb-2">Address & KRA PIN</h3>
                 <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-700">
                   <p className="mb-2"><strong className="text-gray-900">Address:</strong> {selectedClient.address || "N/A"}</p>
-                  <p><strong className="text-gray-900">Notes:</strong> {selectedClient.notes || "None"}</p>
+                  <p><strong className="text-gray-900">KRA PIN:</strong> {selectedClient.kraPin || "Not provided"}</p>
                 </div>
               </div>
 

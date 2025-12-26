@@ -338,7 +338,7 @@ export const generateInvoicePDF = async (
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     doc.setTextColor(50, 50, 50); // Darker gray for footer
-    const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya";
+    const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya";
     doc.text(disclaimer, pageWidth / 2, footerParamsY - 5, { align: "center" });
 
     // Page Numbers
