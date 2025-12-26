@@ -11,37 +11,32 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   return (
     <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20 px-4 md:px-8 py-4 flex justify-between items-center transition-all duration-300">
       <div className="flex items-center gap-3 flex-1">
-        {/* Hamburger menu - only visible on mobile/tablet */}
+        {/* Hamburger Menu for Mobile */}
         {isMobile && (
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Open menu"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+            aria-label="Toggle menu"
           >
-            <FiMenu size={24} className="text-gray-700" />
+            <FiMenu size={24} className="text-gray-700 icon-hover-scale" />
           </button>
         )}
 
-        {/* Search / Context */}
-        <div className="flex-1 max-w-lg">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800 tracking-tight">
-            <span className="text-brand-500">Business</span> Manager
-          </h2>
+        {/* Title */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">KONSUT</h1>
+          <span className="hidden md:inline-block px-3 py-1 bg-brand-100 text-brand-700 text-xs font-semibold rounded-full">
+            Enterprise Plan
+          </span>
         </div>
-      </div>
 
-      {/* Right side: Notifications */}
-      <div className="flex items-center gap-2 md:gap-4">
-        <div className="hidden sm:block px-3 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-full border border-brand-100">
-          Enterprise Plan
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
+          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
+            <FiBell size={20} className="text-gray-600 icon-hover-shake icon-pulse-continuous" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          </button>
         </div>
-        <button
-          className="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition-colors duration-200 relative"
-          title="Notifications"
-        >
-          <FiBell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
       </div>
     </header>
   );

@@ -1,0 +1,318 @@
+/* Icon Animations - KONSUT Invoice System */
+
+/* ============================================
+   HOVER ANIMATIONS
+   ============================================ */
+
+/* Bounce Effect - Navigation, Primary Actions */
+.icon-hover-bounce {
+  transition: transform 0.3s ease;
+}
+
+.icon-hover-bounce:hover {
+  animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-8px); }
+  50% { transform: translateY(-4px); }
+  75% { transform: translateY(-6px); }
+}
+
+/* Pulse Effect - Notifications, Alerts */
+.icon-hover-pulse {
+  transition: transform 0.3s ease;
+}
+
+.icon-hover-pulse:hover {
+  animation: pulse 0.6s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Rotate Effect - Sync, Refresh */
+.icon-hover-rotate {
+  transition: transform 0.3s ease;
+}
+
+.icon-hover-rotate:hover {
+  animation: rotate 0.4s ease-in-out;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Scale Effect - Buttons, CTAs */
+.icon-hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.icon-hover-scale:hover {
+  transform: scale(1.2);
+}
+
+/* Shake Effect - Delete, Warning */
+.icon-hover-shake {
+  transition: transform 0.3s ease;
+}
+
+.icon-hover-shake:hover {
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Swing Effect - Dropdown, Chevrons */
+.icon-hover-swing {
+  transition: transform 0.3s ease;
+  transform-origin: top center;
+}
+
+.icon-hover-swing:hover {
+  animation: swing 0.6s ease;
+}
+
+@keyframes swing {
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(5deg); }
+  80% { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Float Effect - Subtle hover */
+.icon-hover-float {
+  transition: transform 0.3s ease;
+}
+
+.icon-hover-float:hover {
+  transform: translateY(-5px);
+}
+
+/* ============================================
+   ENTRY ANIMATIONS
+   ============================================ */
+
+/* Fade In */
+.icon-fade-in {
+  animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide In from Left */
+.icon-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translateX(-30px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+/* Pop In - Elastic bounce */
+.icon-pop-in {
+  animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes popIn {
+  0% { 
+    transform: scale(0); 
+    opacity: 0; 
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+/* Zoom In */
+.icon-zoom-in {
+  animation: zoomIn 0.4s ease-out;
+}
+
+@keyframes zoomIn {
+  from { 
+    transform: scale(0.5); 
+    opacity: 0; 
+  }
+  to { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+/* Flip In */
+.icon-flip-in {
+  animation: flipIn 0.6s ease-out;
+}
+
+@keyframes flipIn {
+  from {
+    transform: perspective(400px) rotateY(90deg);
+    opacity: 0;
+  }
+  to {
+    transform: perspective(400px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   CONTINUOUS ANIMATIONS
+   ============================================ */
+
+/* Spin - Loading states */
+.icon-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse Continuous - Active indicators */
+.icon-pulse-continuous {
+  animation: pulseContinuous 2s ease-in-out infinite;
+}
+
+@keyframes pulseContinuous {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 0.8; 
+  }
+}
+
+/* Glow - Important notifications */
+.icon-glow {
+  animation: glow 1.5s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 2px currentColor); 
+  }
+  50% { 
+    filter: drop-shadow(0 0 8px currentColor); 
+  }
+}
+
+/* Wiggle - Attention grabber */
+.icon-wiggle {
+  animation: wiggle 2.5s ease-in-out infinite;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* Heartbeat - Notifications */
+.icon-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  10% { transform: scale(1.1); }
+  20% { transform: scale(1); }
+  30% { transform: scale(1.1); }
+  40% { transform: scale(1); }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Delay animations for staggered effects */
+.icon-delay-1 { animation-delay: 0.1s; }
+.icon-delay-2 { animation-delay: 0.2s; }
+.icon-delay-3 { animation-delay: 0.3s; }
+.icon-delay-4 { animation-delay: 0.4s; }
+.icon-delay-5 { animation-delay: 0.5s; }
+
+/* Smooth transitions */
+.icon-smooth {
+  transition: all 0.3s ease;
+}
+
+/* Disable animations for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .icon-hover-bounce:hover,
+  .icon-hover-pulse:hover,
+  .icon-hover-rotate:hover,
+  .icon-hover-shake:hover,
+  .icon-hover-swing:hover,
+  .icon-fade-in,
+  .icon-slide-in,
+  .icon-pop-in,
+  .icon-zoom-in,
+  .icon-flip-in,
+  .icon-spin,
+  .icon-pulse-continuous,
+  .icon-glow,
+  .icon-wiggle,
+  .icon-heartbeat {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================
+   COMBINED EFFECTS
+   ============================================ */
+
+/* Hover + Entry */
+.icon-interactive {
+  animation: fadeIn 0.4s ease-in;
+  transition: transform 0.2s ease;
+}
+
+.icon-interactive:hover {
+  transform: scale(1.15);
+}
+
+/* Active state pulse */
+.icon-active {
+  animation: pulseContinuous 2s ease-in-out infinite;
+}
+
+/* Error state shake */
+.icon-error {
+  animation: shake 0.5s ease;
+  color: #ef4444;
+}
+
+/* Success state bounce */
+.icon-success {
+  animation: bounce 0.5s ease;
+  color: #10b981;
+}

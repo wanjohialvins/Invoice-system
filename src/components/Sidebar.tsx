@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiFileText, FiUsers, FiSettings, FiBox, FiBarChart2, FiX } from "react-icons/fi";
+import { FiHome, FiFileText, FiUsers, FiSettings, FiPackage, FiBarChart2, FiX } from "react-icons/fi";
 import { useIsMobile } from "../hooks/useMediaQuery";
 
 interface SidebarProps {
@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiHome className="group-hover:scale-110 transition-transform" /> Dashboard
+            <FiHome className="icon-hover-bounce icon-fade-in icon-delay-1" /> Dashboard
           </NavLink>
           <NavLink
             to="/new-invoice"
@@ -66,7 +66,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiFileText className="group-hover:scale-110 transition-transform" /> New Invoice
+            <FiFileText className="icon-hover-scale icon-fade-in icon-delay-2" /> New Invoice
           </NavLink>
           <NavLink
             to="/invoices"
@@ -78,7 +78,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiFileText className="group-hover:scale-110 transition-transform" /> All Invoices
+            <FiFileText className="icon-hover-pulse icon-fade-in icon-delay-3" /> All Invoices
           </NavLink>
           <NavLink
             to="/clients"
@@ -90,7 +90,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiUsers className="group-hover:scale-110 transition-transform" /> Clients
+            <FiUsers className="icon-hover-bounce icon-fade-in icon-delay-4" /> Clients
           </NavLink>
           <NavLink
             to="/stock"
@@ -102,7 +102,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiBox className="group-hover:scale-110 transition-transform" /> Stock
+            <FiPackage className="icon-hover-scale icon-fade-in icon-delay-5" /> Stock
           </NavLink>
           <NavLink
             to="/analytics"
@@ -114,11 +114,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiBarChart2 className="group-hover:scale-110 transition-transform" /> Analytics
+            <FiBarChart2 className="icon-hover-pulse icon-fade-in icon-delay-1" /> Analytics
           </NavLink>
         </nav>
 
-        <div className="mt-8 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">System</div>
+        <div className="mt-6 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">System</div>
         <nav className="space-y-1">
           <NavLink
             to="/settings"
@@ -130,7 +130,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiSettings className="group-hover:rotate-90 transition-transform duration-500" /> Settings
+            <FiSettings className="icon-hover-rotate icon-fade-in icon-delay-2" /> Settings
           </NavLink>
         </nav>
       </div>

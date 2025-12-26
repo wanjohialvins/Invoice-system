@@ -16,7 +16,7 @@
  * - "Save" simulates a network request for better UX feedback.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   FaSave,
   FaUndo,
@@ -30,9 +30,21 @@ import {
   FaExclamationTriangle,
   FaChevronRight,
   FaTrash,
-  FaSync
+  FaSync,
+  FaDownload,
+  FaUpload,
+  FaDatabase,
+  FaFolder
 } from "react-icons/fa";
 import logo from "../assets/logo.jpg";
+import {
+  exportBackup,
+  importBackup,
+  clearAllData as clearBackupData,
+  getBackupInfo,
+  updateLastBackupDate,
+  getBrowserStorageInfo
+} from "../utils/backupManager";
 
 // --- Types & Interfaces ---
 
@@ -176,6 +188,11 @@ const Settings: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
 
+  // Backup state
+  const [backupInfo, setBackupInfo] = useState(getBackupInfo());
+  const [restoring, setRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Load Data
   useEffect(() => {
     try {
@@ -253,6 +270,68 @@ const Settings: React.FC = () => {
       if (window.confirm("Really delete everything?")) {
         localStorage.clear();
         window.location.reload();
+      }
+    }
+  };
+
+  // Backup and Restore Functions
+  const handleBackup = () => {
+    try {
+      exportBackup();
+      updateLastBackupDate();
+      setBackupInfo(getBackupInfo());
+      setSaveStatus("saved");
+      setSaveMessage("Backup created successfully!");
+      setTimeout(() => {
+        setSaveStatus("idle");
+        setSaveMessage("");
+      }, 3000);
+    } catch (error) {
+      console.error("Backup failed:", error);
+      setSaveStatus("error");
+      setSaveMessage("Failed to create backup");
+    }
+  };
+
+  const handleRestore = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const mode = window.confirm(
+      "Choose restore mode:\n\nOK = Replace all existing data\nCancel = Merge with existing data"
+    ) ? "replace" : "merge";
+
+    setRestoring(true);
+    try {
+      const backup = await importBackup(file, mode);
+      setSaveStatus("saved");
+      setSaveMessage(`Backup restored successfully! (${backup.metadata.invoiceCount} invoices, ${backup.metadata.clientCount} clients)`);
+
+      // Reload after 2 seconds to reflect changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error: any) {
+      console.error("Restore failed:", error);
+      setSaveStatus("error");
+      setSaveMessage(error.message || "Failed to restore backup");
+      setRestoring(false);
+    }
+  };
+
+  const handleClearAllData = () => {
+    if (window.confirm("⚠️ WARNING: This will delete ALL data (invoices, clients, stock, settings). Create a backup first!\n\nAre you sure?")) {
+      if (window.confirm("Last chance! This action cannot be undone. Proceed?")) {
+        clearBackupData();
+        setSaveStatus("saved");
+        setSaveMessage("All data cleared");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       }
     }
   };
@@ -552,18 +631,106 @@ const Settings: React.FC = () => {
 
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Data Management</h3>
+
+                    {/* Hidden file input for restore */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+
+                    {/* Backup Info Card */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 mb-6">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                          <FaDatabase size={24} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-blue-900 mb-1">Current Data Status</h4>
+                          <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+                            <div>
+                              <span className="text-blue-600 font-medium">Invoices:</span>
+                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.invoiceCount}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-600 font-medium">Clients:</span>
+                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.clientCount}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-600 font-medium">Stock Items:</span>
+                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.stockItemCount}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-600 font-medium">Total Size:</span>
+                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.totalSize}</span>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <span className="text-xs text-blue-600">Last Backup:</span>
+                            <span className="ml-2 text-xs text-blue-900 font-medium">
+                              {backupInfo.lastBackup
+                                ? new Date(backupInfo.lastBackup).toLocaleString()
+                                : "Never"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={handleBackup}
+                          className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md"
+                        >
+                          <FaDownload size={14} /> Backup All Data
+                        </button>
+                        <button
+                          onClick={handleRestore}
+                          disabled={restoring}
+                          className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                        >
+                          {restoring ? <FaSync className="animate-spin" size={14} /> : <FaUpload size={14} />}
+                          {restoring ? "Restoring..." : "Restore from Backup"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Browser Storage Info */}
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-gray-200 text-gray-600 rounded-lg">
+                          <FaFolder size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-800 mb-2">Browser Storage Location</h4>
+                          <p className="text-xs text-gray-600 mb-2">
+                            <strong>{getBrowserStorageInfo().browser}</strong>
+                          </p>
+                          <code className="block text-xs bg-white p-3 rounded border border-gray-200 text-gray-700 break-all">
+                            {getBrowserStorageInfo().path}
+                          </code>
+                          <p className="text-xs text-gray-500 mt-2">
+                            💡 Tip: Your data is stored in your browser's localStorage. Create regular backups to prevent data loss.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Danger Zone */}
                     <div className="bg-red-50 p-6 rounded-xl border border-red-100">
                       <div className="flex items-start gap-4">
                         <div className="p-3 bg-red-100 text-red-600 rounded-lg">
                           <FaExclamationTriangle size={24} />
                         </div>
-                        <div>
-                          <h4 className="font-bold text-red-800">Advanced Actions</h4>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-red-800">Danger Zone</h4>
                           <p className="text-sm text-red-600 mt-1 mb-4">
-                            Resetting data is irreversible. Please proceed with caution.
+                            Deleting data is irreversible. Create a backup first!
                           </p>
                           <button
-                            onClick={clearAllData}
+                            onClick={handleClearAllData}
                             className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                           >
                             <FaTrash size={14} /> Clear All App Data

@@ -66,11 +66,11 @@ const USD_TO_KSH_KEY = "usdToKshRate";
 const LAST_SAVED_QUOTE_KEY = "konsut_last_saved_quote";
 
 const COMPANY = {
-  name: "KONSUT Ltd",
+  name: "KONSUT LTD",
   address1: "P.O BOX 21162-00100",
   address2: "G.P.O NAIROBI",
   phone: "+254 700 420 897",
-  email: "info@konsutltd.co.ke",
+  email: "info@konsut.co.ke",
   pin: "P052435869T",
 
 };
@@ -937,7 +937,7 @@ const NewInvoice: React.FC = () => {
 
           {/* Footer */}
           <div className="text-center text-gray-500 text-xs mb-8">
-            If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsutltd.co.ke | Ruiru, Kenya
+            If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya
           </div>
         </div>
 

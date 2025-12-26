@@ -281,7 +281,7 @@ export const generateInvoicePDF = async (
     const bankDetails = [
       "Bank: I&M BANK",
       "Branch: RUIRU BRANCH",
-      "Account No (KSH): XXXXXXXXXXXXX",
+      "Account No (KSH): 05507023236350",
       "Account No (USD): 05507023231250",
       "SWIFT CODE: IMBLKENA",
       "BANK CODE: 57 | BRANCH CODE: 055"

@@ -239,10 +239,10 @@ const Analytics: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div className="flex items-center gap-4">
-            <img src={logo} alt="KONSUT Ltd" className="h-16 w-auto object-contain" />
+            <img src={logo} alt="KONSUT LTD" className="h-16 w-auto object-contain" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-              <p className="text-gray-600">KONSUT Ltd - Business Insights</p>
+              <p className="text-gray-600">KONSUT LTD - Business Insights</p>
             </div>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
