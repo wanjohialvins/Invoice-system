@@ -1,7 +1,6 @@
 # KONSUT Ltd Invoice Management System
 
-<<<<<<< HEAD
-A professional, feature-rich invoice management system built with React, TypeScript, and Vite. This system provides comprehensive tools for creating quotations, managing invoices, tracking stock, and generating professional PDF documents.
+A professional, feature-rich invoice management system built with React, TypeScript, and Vite. This comprehensive application provides tools for creating quotations, managing invoices, tracking inventory, maintaining client databases, and generating professional PDF documents.
 
 ![KONSUT Ltd](./public/konsut-banner.png)
 
@@ -13,36 +12,82 @@ A professional, feature-rich invoice management system built with React, TypeScr
 - **PDF Generation**: Export invoices and quotations as professionally formatted PDF documents with:
   - Bordered tables and sections
   - Company branding and logo
-  - Itemized pricing with VAT calculations
+  - Itemized pricing with VAT calculations (16%)
   - Payment details and terms
   - Professional styling and layout
+  - Customizable watermarks and barcodes
+  - Configurable headers and footers
+- **Auto-save Drafts**: Automatically save invoice drafts to prevent data loss
+- **Invoice Status Tracking**: Monitor paid, pending, and overdue invoices
 
 ### Stock Management
 - **Multi-Category Inventory**: Manage products, mobilization equipment, and services
 - **Real-time Stock Tracking**: Monitor inventory levels and values
 - **Pricing in Multiple Currencies**: Support for KSH and USD with automatic conversion
 - **Weight-Based Freight Calculation**: Automatic freight cost calculation for products
+- **CSV Import/Export**: Bulk import stock from CSV/Excel files and export inventory data
+- **Merge-on-Add**: Intelligent duplicate detection when adding stock items
+- **Seed Sample Data**: Quick-start with pre-populated sample inventory
 
-### Customer Management
-- **Customer Database**: Store and manage customer information
+### Client Management
+- **Client Database**: Store and manage customer information with CRUD operations
 - **Auto-generated Customer IDs**: Unique identification for each customer
-- **Contact Information**: Track phone, email, and address details
-- **Purchase History**: View all invoices associated with each customer
+- **Contact Information**: Track phone, email, address, company, and notes
+- **Client Avatars**: Color-coded initials for visual identification
+- **Purchase History**: View all invoices associated with each client
+- **Client Statistics**: Track total spent, invoice count, and last purchase date
+- **CSV Export**: Export client data with statistics
+- **Seed & Delete**: Populate test data or perform hard resets
+- **Multi-source Tracking**: Distinguish between manually added clients and invoice-generated entries
 
 ### Analytics & Reporting
-- **Dashboard Overview**: Real-time metrics and KPIs
-- **Revenue Tracking**: Monitor total revenue, monthly trends, and growth
-- **Invoice Status**: Track paid, pending, and overdue invoices
-- **Top Customers**: Identify your best customers by revenue
-- **Stock Valuation**: Real-time inventory value calculations
+- **Dashboard Overview**: Real-time metrics and KPIs including:
+  - Total revenue with monthly trends and growth percentages
+  - Invoice metrics and average invoice value
+  - Stock valuation
+  - Status breakdown (paid, pending, overdue)
+  - Top customers by revenue
+  - Recent invoices with quick actions
+- **Advanced Analytics**: Comprehensive visual reports with:
+  - Revenue trends over time (line charts)
+  - Category-wise sales breakdown (bar charts)
+  - Payment status distribution (pie charts)
+  - Monthly comparisons
+  - Top customers and products
+  - Stock value analysis
+- **Data Export**: Export analytics data to CSV
+
+### Comprehensive Settings
+- **Company Profile**:
+  - Customize company name, address, phone, email, and PIN
+  - Upload and manage company logo
+- **Invoice Configuration**:
+  - Number and date formatting options
+  - Toggle freight, descriptions, customer details, and payment details
+  - Default currency (KSH/USD) and conversion rates
+  - Freight rate configuration
+  - PDF customization (watermark, barcode, header/footer)
+  - Page orientation, size, font family, and font size
+  - Custom footer text
+- **User Preferences**:
+  - Theme support (Light/Dark/Auto)
+  - Language selection
+  - Auto-save drafts toggle
+  - Notification preferences
+- **System Settings**:
+  - Data backup and restore
+  - Reset to defaults
+  - Clear all data
 
 ### Advanced Features
 - **VAT Calculations**: Automatic 16% VAT calculation
 - **Freight Management**: Product-based and manual freight charges
-- **Currency Conversion**: Real-time USD to KSH conversion
-- **Data Persistence**: All data saved locally in browser storage
+- **Currency Conversion**: Real-time USD to KSH conversion with configurable rates
+- **Data Persistence**: All data saved locally in browser storage (localStorage)
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Professional UI**: Clean, modern interface with intuitive navigation
+- **Search & Filter**: Quick search across invoices, clients, and stock
+- **Comprehensive Comments**: Well-documented codebase for maintainability
 
 ## 🚀 Getting Started
 
@@ -65,54 +110,10 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-=======
-A modern, full-featured invoice management application built with React, TypeScript, and Vite. This system allows businesses to manage clients, inventory, and generate professional PDF invoices with ease.
-
-![Dashboard Screenshot](https://via.placeholder.com/800x450?text=Invoice+System+Dashboard)
-
-## 🚀 Features
-
-- **Dashboard**: Real-time overview of revenue, invoice status, and recent activities.
-- **Invoice Management**: Create, edit, and manage invoices with a user-friendly interface.
-- **PDF Generation**: Generate professional PDF invoices with customizable settings (watermarks, barcodes, headers/footers).
-- **Client Management**: Maintain a database of clients with their contact details.
-- **Inventory/Stock**: Track products and services, including pricing and stock levels.
-- **Analytics**: Visual reports on revenue trends and business performance.
-- **Comprehensive Settings**:
-  - **Company Info**: Customize company details and logo.
-  - **Invoice Configuration**: Adjust formats, currencies (Ksh/USD), and layout.
-  - **User Preferences**: Theme support (Light/Dark) and notification settings.
-  - **System Settings**: Data backup and management.
-- **Data Persistence**: All data is securely stored locally in the browser (LocalStorage).
-
-## 🛠️ Technology Stack
-
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Tailwind CSS
-- **Icons**: React Icons (Lucide, FontAwesome)
-- **Charts**: Recharts
-- **PDF Generation**: jsPDF, jspdf-autotable
-- **Routing**: React Router DOM
-
-## 📦 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Invoice-system
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
 3. **Start the development server**
    ```bash
    npm run dev
    ```
-<<<<<<< HEAD
 
 4. **Open your browser**
    
@@ -142,6 +143,7 @@ npm run preview
 2. **Add Stock Items** (if not already added):
    - Click "Seed Stock" to add sample items, or
    - Go to "Stock" page to manually add products, mobilization, or services
+   - Import from CSV/Excel for bulk additions
 3. **Fill in Customer Details**:
    - Customer name, phone, email, and address
    - Set the "Valid Till" date for quotations
@@ -162,10 +164,33 @@ npm run preview
 2. **Add New Items**:
    - Click "Add New Item"
    - Fill in item details (name, category, price, weight, etc.)
+   - Prices sync between KSH and USD automatically
    - Save the item
-3. **Edit or Delete Items**:
+3. **Import from CSV/Excel**:
+   - Click "Import from CSV/Excel"
+   - Select your file (CSV or Excel format)
+   - Items are automatically parsed and added
+4. **Edit or Delete Items**:
    - Use the action buttons in the stock table
    - Update quantities, prices, or descriptions as needed
+5. **Export Data**:
+   - Click "Export CSV" to download your inventory
+
+### Managing Clients
+
+1. **Navigate to "Clients"** from the sidebar
+2. **Add New Client**:
+   - Click "Add Client"
+   - Fill in contact details (name, phone, email, address, company, notes)
+   - Save the client
+3. **View Client Statistics**:
+   - See total spent, number of invoices, and last purchase date
+   - Color-coded avatars for quick identification
+4. **Export Client Data**:
+   - Click "Export CSV" to download client database with statistics
+5. **Seed or Delete**:
+   - Use "Seed Clients" for test data
+   - Use "Delete All" for hard reset
 
 ### Viewing Invoices
 
@@ -186,7 +211,28 @@ The dashboard provides:
 - **Stock Value**: Current inventory valuation
 - **Status Breakdown**: Count of paid, pending, and overdue invoices
 - **Top Customers**: Your best customers by revenue
-- **Recent Invoices**: Quick access to latest invoices
+- **Recent Invoices**: Quick access to latest invoices with view and download actions
+
+### Advanced Analytics
+
+The Analytics page offers:
+- **Revenue Trends**: Line charts showing revenue over time
+- **Category Analysis**: Bar charts for sales by category
+- **Payment Status**: Pie charts for invoice status distribution
+- **Monthly Comparisons**: Track performance month-over-month
+- **Top Performers**: Identify best customers and products
+- **Stock Insights**: Analyze inventory value by category
+- **Data Export**: Download analytics data as CSV
+
+### Customizing Settings
+
+1. **Navigate to Settings** from the sidebar
+2. **Company Info**: Update name, address, phone, email, PIN, and logo
+3. **Invoice Settings**: Configure default rates (Freight, Currency), toggle header/footer visibility, and manage PDF options (Watermark, Barcode)
+4. **User Preferences**: Set theme, language, and notification preferences
+5. **System**: Manage data persistence, backup, and reset options
+
+Changes made in the Settings page are saved locally and will be reflected in all new invoices and PDF documents.
 
 ## 🛠️ Technology Stack
 
@@ -199,6 +245,7 @@ The dashboard provides:
 - **Icons**: React Icons 5.5.0, Lucide React 0.546.0
 - **Charts**: Recharts 3.2.1
 - **Form Components**: React Datepicker 8.7.0, React Phone Input 2.15.1
+- **Utilities**: classnames 2.5.1, html2canvas 1.4.1
 
 ## 📁 Project Structure
 
@@ -210,25 +257,27 @@ konsut-invoice-sys/
 │           └── logo.jpg   # Company logo
 ├── src/
 │   ├── assets/            # Images and static files
+│   │   └── logo.jpg
 │   ├── components/        # Reusable React components
-│   │   ├── Layout.tsx
-│   │   ├── Sidebar.tsx
-│   │   └── Topbar.tsx
+│   │   ├── Layout.tsx     # Main layout wrapper
+│   │   ├── Sidebar.tsx    # Navigation sidebar
+│   │   └── Topbar.tsx     # Top navigation bar
 │   ├── constants/         # App constants and configuration
-│   │   └── index.ts
+│   │   └── index.ts       # Storage keys, company info, default rates
 │   ├── pages/             # Page components
-│   │   ├── Dashboard.tsx
-│   │   ├── NewInvoice.tsx
-│   │   ├── Invoices.tsx
-│   │   ├── Clients.tsx
-│   │   ├── Stock.tsx
-│   │   ├── Settings.tsx
-│   │   └── Analytics.tsx
+│   │   ├── Dashboard.tsx  # Main dashboard with KPIs
+│   │   ├── NewInvoice.tsx # Invoice/quotation creator
+│   │   ├── Invoices.tsx   # Invoice list and management
+│   │   ├── Clients.tsx    # Client database management
+│   │   ├── Stock.tsx      # Inventory management
+│   │   ├── Settings.tsx   # Application settings
+│   │   └── Analytics.tsx  # Advanced analytics and charts
 │   ├── types/             # TypeScript type definitions
 │   │   └── types.ts
 │   ├── utils/             # Utility functions
-│   │   └── pdfGenerator.ts
-│   ├── App.tsx            # Main app component
+│   │   ├── pdfGenerator.ts # PDF generation logic
+│   │   └── config.ts      # Configuration utilities
+│   ├── App.tsx            # Main app component with routing
 │   ├── main.tsx           # App entry point
 │   └── index.css          # Global styles
 ├── package.json
@@ -237,44 +286,64 @@ konsut-invoice-sys/
 └── tailwind.config.js
 ```
 
-## 🎨 Customization
-
-### Company Information & Rates
-
-You can easily configure company details, freight rates, and currency conversion rates directly from the **Settings** page in the application.
-
-1. **Navigate to Settings** from the sidebar.
-2. **Company Info**: Update name, address, phone, email, PIN, and logo.
-3. **Invoice Settings**: Configure default rates (Freight, Currency), toggle header/footer visibility, and manage PDF options (Watermark, Barcode).
-4. **System**: Manage data persistence and reset options.
-
-Changes made in the Settings page are saved locally and will be reflected in all new invoices and PDF documents.
-
 ## 💾 Data Storage
 
 All data is stored locally in your browser's localStorage:
-- **Invoices**: Saved quotations and invoices
-- **Stock**: Product, mobilization, and service inventory
-- **Drafts**: Auto-saved invoice drafts
-- **Settings**: User preferences and rates
+- **Invoices**: Saved quotations and invoices (`invoices`)
+- **Stock**: Product, mobilization, and service inventory (`stockData`)
+- **Clients**: Customer database (`konsut_clients`)
+- **Drafts**: Auto-saved invoice drafts (`konsut_newinvoice_draft_vFinal`)
+- **Settings**: Company info, invoice settings, user preferences, and rates
+- **Last Saved Quote**: Reference to the most recently saved quotation
 
-**Note**: Clearing browser data will remove all stored information. Consider implementing a backup solution for production use.
+**Note**: Clearing browser data will remove all stored information. Use the backup feature in Settings or export data regularly for production use.
 
 ## 🔧 Development
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
+- `npm run dev` - Start development server with host access
+- `npm run build` - Build for production (TypeScript compilation + Vite build)
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
 ### Code Quality
 
 The project uses:
-- **ESLint**: For code linting
-- **TypeScript**: For type safety
-- **Prettier**: For code formatting (configure as needed)
+- **ESLint**: For code linting with React hooks and refresh plugins
+- **TypeScript**: For type safety and better developer experience
+- **Comprehensive Comments**: All files include detailed documentation explaining purpose, features, and implementation details
+
+### Development Features
+
+- **Hot Module Replacement**: Instant updates during development
+- **Type Safety**: Full TypeScript support with strict type checking
+- **Component-Based Architecture**: Modular, reusable components
+- **Centralized Constants**: Shared configuration in `constants/index.ts`
+- **Utility Functions**: Reusable helpers for common operations
+
+## 🎨 Customization
+
+### Company Information & Rates
+
+You can easily configure company details, freight rates, and currency conversion rates directly from the **Settings** page in the application.
+
+1. Navigate to Settings from the sidebar
+2. Update company information, logo, and branding
+3. Configure invoice defaults and PDF options
+4. Set freight rates and currency conversion rates
+5. Customize user preferences and system settings
+
+All changes are saved to localStorage and applied immediately.
+
+### Adding New Features
+
+The codebase is well-structured for extensibility:
+- Add new pages in `src/pages/`
+- Create reusable components in `src/components/`
+- Define types in `src/types/types.ts`
+- Add utilities in `src/utils/`
+- Update constants in `src/constants/index.ts`
 
 ## 📝 License
 
@@ -287,48 +356,16 @@ For support, email info@konsutltd.co.ke or call +254 700 420 897.
 ## 🙏 Acknowledgments
 
 - Built with modern React and TypeScript
-- PDF generation powered by jsPDF
+- PDF generation powered by jsPDF and jspdf-autotable
 - UI components styled with Tailwind CSS
 - Icons from React Icons and Lucide React
+- Charts powered by Recharts
+- Form components from React Datepicker and React Phone Input
 
 ---
 
-**KONSUT Ltd** - Professional Invoice Management System
+**KONSUT Ltd** - Professional Invoice Management System  
 *Ruiru, Kenya*
-=======
 
-4. **Build for production**
-   ```bash
-   npm run build
-   ```
-
-## 📖 Usage Guide
-
-### Creating an Invoice
-1. Navigate to "New Invoice".
-2. Select a client or add a new one.
-3. Add items from your stock or create custom entries.
-4. Adjust quantities and prices.
-5. Click "Save Invoice" or "Download PDF".
-
-### Managing Settings
-Go to the **Settings** page to configure:
-- **Company Profile**: Update your business address and logo.
-- **Invoice Defaults**: Set your preferred currency, tax rates, and terms.
-- **System**: Backup your data or reset the application.
-
-## 💾 Data Management
-
-This application uses **LocalStorage** for data persistence. This means:
-- Your data stays on your device.
-- Clearing browser cache will remove your data (use the Backup feature in Settings!).
-- No external database connection is required.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License.
->>>>>>> d34a91824de4269ec5876732b78732f152cb0e1c
+**Version**: 1.0.0  
+**Last Updated**: December 2025
