@@ -31,6 +31,7 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
+import { useToast } from "../contexts/ToastContext";
 
 /* ============================
    Types
@@ -77,6 +78,8 @@ const useToasts = () => {
    Main Component
    ============================ */
 const NewInvoice: React.FC = () => {
+  const { showToast } = useToast();
+
   // --- Inventory State ---
   // Loaded from localStorage to populate the selection lists.
   const [products, setProducts] = useState<Product[]>([]);
@@ -558,7 +561,7 @@ const NewInvoice: React.FC = () => {
     } catch (err) {
       console.error("PDF generation failed:", err);
       pushToast("PDF generation failed", "error");
-      alert("PDF generation failed. See console for details.");
+      showToast('error', 'PDF generation failed. See console for details');
     }
   };
 

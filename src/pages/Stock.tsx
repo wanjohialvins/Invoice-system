@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { STORAGE_KEYS, DEFAULT_RATES } from "../constants";
+import { useToast } from "../contexts/ToastContext";
 
 /* -------------------------
    Types & LocalStorage keys
@@ -175,6 +176,8 @@ const getInitialCurrencyRate = (): number => {
    Component
    ------------------------- */
 const Stock: React.FC = () => {
+  const { showToast } = useToast();
+
   /* ---------------------
      State Management
      --------------------- */
@@ -280,9 +283,18 @@ const Stock: React.FC = () => {
   // Handles both Adding new items and Updating existing ones.
   // Implements 'Merge-on-add' if a duplicate name is detected in the same category.
   const handleAddOrUpdate = () => {
-    if (!formName.trim()) return alert("Please enter a name.");
-    if (formPriceKsh < 0) return alert("Enter a valid unit price in Ksh."); // Allow 0
-    if (formQty <= 0) return alert("Enter a valid quantity.");
+    if (!formName.trim()) {
+      showToast('warning', 'Please enter a name');
+      return;
+    }
+    if (formPriceKsh < 0) {
+      showToast('warning', 'Enter a valid unit price in Ksh');
+      return;
+    }
+    if (formQty <= 0) {
+      showToast('warning', 'Enter a valid quantity');
+      return;
+    }
 
     const cat = activeCategory;
     const existingIndex = stock[cat].findIndex(
@@ -440,10 +452,10 @@ const Stock: React.FC = () => {
           };
           setStock(updated);
           localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(updated));
-          alert("Import successful!");
+          showToast('success', 'Import successful!');
         }
       } else {
-        alert("No valid items found. check format: Category,Name,PriceKsh,PriceUSD,Description");
+        showToast('warning', 'No valid items found. Check format: Category,Name,PriceKsh,PriceUSD,Description');
       }
     };
     reader.readAsText(file);
@@ -507,7 +519,7 @@ const Stock: React.FC = () => {
       ],
     };
     setStock(sample);
-    alert("Sample stock seeded.");
+    showToast('success', 'Sample stock seeded');
   };
 
   /* ---------------------

@@ -40,6 +40,9 @@ import {
   FaExclamationTriangle
 } from "react-icons/fa";
 import logo from "../assets/logo.jpg";
+import { useToast } from "../contexts/ToastContext";
+import { useDebounce, useKeyboardShortcut } from "../hooks/useUtils";
+import { EmptyState, LoadingSpinner } from "../components/shared/UIComponents";
 
 /* -------------------------------------------------------------------------- */
 /*                                Types                                       */
@@ -138,6 +141,8 @@ const downloadCSV = (clients: Client[], statsMap: Record<string, any>) => {
 /* -------------------------------------------------------------------------- */
 
 const Clients: React.FC = () => {
+  const { showToast } = useToast();
+
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -250,7 +255,7 @@ const Clients: React.FC = () => {
         setClients(unique);
         setInvoices(invData);
         localStorage.setItem(CLIENTS_KEY, JSON.stringify(unique));
-        alert("Sync complete: Clients updated from invoices.");
+        showToast('success', 'Sync complete: Clients updated from invoices');
       } catch (e) {
         console.error(e);
       } finally {
@@ -292,7 +297,10 @@ const Clients: React.FC = () => {
   // CRUD Actions: Create/Update
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) return alert("Name and Phone are required.");
+    if (!formData.name || !formData.phone) {
+      showToast('warning', 'Name and Phone are required');
+      return;
+    }
 
     const newClient: Client = {
       id: editingClient ? editingClient.id : `MANUAL-${Date.now()}`,

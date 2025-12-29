@@ -14,17 +14,21 @@
  * - Status management (internal use only, not shown in PDF)
  * - Search and filter capabilities
  */
-import React, { useEffect, useState, useCallback } from "react";
-import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp, FaFileInvoice } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import type { Invoice as InvoiceData, InvoiceType as DocumentType } from "../types/types";
+import { useToast } from "../contexts/ToastContext";
+import { useDebounce, useKeyboardShortcut } from "../hooks/useUtils";
+import { EmptyState, LoadingSpinner } from "../components/shared/UIComponents";
 
 // --- Constants ---
 const INVOICES_KEY = "invoices";
 
 const Invoices: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // --- State ---
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
@@ -35,6 +39,12 @@ const Invoices: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Debounced search for better performance
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  // Keyboard shortcut: Ctrl+N to create new invoice
+  useKeyboardShortcut('n', () => navigate('/new-invoice'), true);
 
   // --- Data Loading ---
   const loadInvoices = useCallback(() => {
@@ -112,7 +122,7 @@ const Invoices: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to delete invoice:", error);
-      alert("Failed to delete document");
+      showToast('error', 'Failed to delete document');
     }
   }, [invoices]);
 
@@ -156,7 +166,7 @@ const Invoices: React.FC = () => {
         console.log('Error sharing:', error);
       }
     } else {
-      alert("Sharing is not supported on this device/browser.");
+      showToast('info', 'Sharing is not supported on this device/browser');
     }
   };
 
@@ -170,7 +180,7 @@ const Invoices: React.FC = () => {
       setEditingStatus(null);
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("Failed to update status");
+      showToast('error', 'Failed to update status');
     }
   }, [invoices]);
 
@@ -197,11 +207,11 @@ const Invoices: React.FC = () => {
       setInvoices(updated);
       localStorage.setItem(INVOICES_KEY, JSON.stringify(updated));
 
-      alert(`Converted to ${toType}! New ID: ${newId}`);
+      showToast('success', `Converted to ${toType}! New ID: ${newId}`);
       setActiveTab(toType);
     } catch (error) {
       console.error("Failed to convert document:", error);
-      alert("Failed to convert document");
+      showToast('error', 'Failed to convert document');
     }
   }, [invoices]);
 
@@ -224,10 +234,10 @@ const Invoices: React.FC = () => {
       setInvoices(updated);
       localStorage.setItem(INVOICES_KEY, JSON.stringify(updated));
 
-      alert(`Document duplicated! New ID: ${newId}`);
+      showToast('success', `Document duplicated! New ID: ${newId}`);
     } catch (error) {
       console.error("Failed to duplicate document:", error);
-      alert("Failed to duplicate document");
+      showToast('error', 'Failed to duplicate document');
     }
   }, [invoices]);
 
