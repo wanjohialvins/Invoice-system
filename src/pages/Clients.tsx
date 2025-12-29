@@ -328,7 +328,6 @@ const Clients: React.FC = () => {
 
   // Helper: Pre-fill form for editing
   const handleEdit = (client: Client) => {
-    if (client.source !== 'manual') return alert("Auto-generated clients cannot be edited directly. Edit the source invoice instead.");
     setEditingClient(client);
     setFormData({
       name: client.name,
@@ -591,16 +590,14 @@ const Clients: React.FC = () => {
                 </div>
               </div>
 
-              {selectedClient.source === 'manual' && (
-                <div className="flex gap-4">
-                  <button onClick={() => { setShowForm(true); setEditingClient(selectedClient); setSelectedClient(null); }} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200">
-                    Edit Details
-                  </button>
-                  <button onClick={() => handleDelete(selectedClient.id)} className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-semibold hover:bg-red-100">
-                    Delete Client
-                  </button>
-                </div>
-              )}
+              <div className="flex gap-4">
+                <button onClick={() => { setShowForm(true); setEditingClient(selectedClient); setSelectedClient(null); }} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200">
+                  Edit Details
+                </button>
+                <button onClick={() => handleDelete(selectedClient.id)} className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-semibold hover:bg-red-100">
+                  Delete Client
+                </button>
+              </div>
             </div>
           </div>
         </div>

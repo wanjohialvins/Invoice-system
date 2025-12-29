@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{ts,tsx}", // cover TypeScript files
   ],
+  darkMode: 'class', // Enable class-based dark mode
   theme: {
     extend: {
       colors: {

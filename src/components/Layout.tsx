@@ -1,12 +1,13 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile } from "../hooks/useMediaQuery";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const location = useLocation();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -31,8 +32,10 @@ export default function Layout() {
 
       <div className="flex-1 flex flex-col">
         <Topbar onMenuClick={toggleSidebar} />
-        <main className="flex-1 p-4 md:p-6">
-          <Outlet />
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
+          <div key={location.pathname} className="animate-slide-up">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

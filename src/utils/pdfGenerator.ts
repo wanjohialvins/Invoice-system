@@ -3,26 +3,7 @@ import autoTable from "jspdf-autotable";
 import { getCompanySettings, getInvoiceSettings } from "../utils/config";
 import logo from "../assets/logo.jpg";
 
-export interface InvoiceData {
-  id: string;
-  date: string;
-  issuedDate: string;
-  dueDate: string;
-  customer: {
-    id: string;
-    name: string;
-    phone: string;
-    email: string;
-    address: string;
-  };
-  items: any[];
-  subtotal: number;
-  productFreightTotal: number;
-  grandTotal: number;
-  freightRate: number;
-  currencyRate: number;
-  status: string;
-}
+import type { Invoice as InvoiceData } from "../types/types";
 
 const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number; height: number } | null> =>
   new Promise((resolve) => {
@@ -52,7 +33,7 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
 
 export const generateInvoicePDF = async (
   invoice: InvoiceData,
-  documentType: "INVOICE" | "QUOTATION" = "INVOICE"
+  documentType: "INVOICE" | "QUOTATION" | "PROFORMA" = "INVOICE"
 ) => {
   try {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -83,8 +64,9 @@ export const generateInvoicePDF = async (
     };
 
     // --- Watermark (Subtle) ---
+    // Removed Status Watermark as requested
     doc.saveGraphicsState();
-    doc.setTextColor(230, 230, 230); // Slightly darker watermark
+    doc.setTextColor(245, 245, 245); // Very subtle gray
     doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
     const watermarkText = "KONSUT LTD";
@@ -151,18 +133,44 @@ export const generateInvoicePDF = async (
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    // documentType is centered
-    doc.text(documentType, pageWidth / 2, titleY + 7, { align: "center" });
+    doc.text(
+      documentType === 'INVOICE' ? 'INVOICE'
+        : documentType === 'QUOTATION' ? 'PRICE QUOTATION'
+          : 'PROFORMA INVOICE',
+      pageWidth / 2, titleY + 7, { align: "center" }
+    );
 
-    // --- Details Section (Middle Boxes) ---
+    // --- Details Section (Middle Boxes) - DYNAMIC HEIGHT ---
     const detailsY = titleY + 15;
-    const detailsHeight = 45;
     // Helper calculations for layout below header
     const boxWidth = (pageWidth - (margin * 2) - boxGap) / 2;
     const rightBoxX = margin + boxWidth + boxGap;
 
+    // Calculate Bill To box height
+    let billToLines = 0;
+    if (invoice.customer.id) billToLines++;
+    billToLines++; // Name (always present)
+    if (invoice.customer.phone) billToLines++;
+    if (invoice.customer.email) billToLines++;
+    if (invoice.customer.kraPin) billToLines++;
+    if (invoice.customer.address) {
+      const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
+      billToLines += addrLines.length;
+    }
+    const billToHeight = 7 + (billToLines * 4) + 4; // Header + lines + padding
+
+    // Calculate Invoice Details box height
+    let detailLines = 2; // ID + Issued Date (always present)
+    if ((documentType === 'QUOTATION' && invoice.quotationValidUntil) || invoice.dueDate) {
+      detailLines++;
+    }
+    const detailsHeight = 7 + (detailLines * 5) + 4; // Header + lines + padding
+
+    // Use the taller of the two for alignment
+    const maxDetailsHeight = Math.max(billToHeight, detailsHeight);
+
     // Box 1: Bill To
-    drawBox(margin, detailsY, boxWidth, detailsHeight, "Bill To:");
+    drawBox(margin, detailsY, boxWidth, maxDetailsHeight, "Bill To:");
 
     y = detailsY + 12; // Start below header
     doc.setFont("helvetica", "normal");
@@ -173,13 +181,17 @@ export const generateInvoicePDF = async (
     doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
     if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone}`, margin + 4, y); y += 4; }
     if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email}`, margin + 4, y); y += 4; }
+    if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin}`, margin + 4, y); y += 4; }
     if (invoice.customer.address) {
       const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
       doc.text(addrLines, margin + 4, y);
     }
 
     // Box 2: Invoice Details
-    drawBox(rightBoxX, detailsY, boxWidth, detailsHeight, documentType === "INVOICE" ? "Invoice Details:" : "Quote Details:");
+    let detailsHeader = "Invoice Details:";
+    if (documentType === 'QUOTATION') detailsHeader = "Quotation Details:";
+    if (documentType === 'PROFORMA') detailsHeader = "Proforma Details:";
+    drawBox(rightBoxX, detailsY, boxWidth, maxDetailsHeight, detailsHeader);
 
     y = detailsY + 12;
     const labelX = rightBoxX + 4;
@@ -194,44 +206,44 @@ export const generateInvoicePDF = async (
       y += 5;
     };
 
-    printRow(documentType === 'INVOICE' ? "Invoice No:" : "Quote No:", invoice.id);
-    printRow("Issued Date:", invoice.issuedDate);
-    if (invoice.dueDate) printRow(documentType === 'INVOICE' ? "Due Date:" : "Valid Until:", invoice.dueDate);
+    printRow(
+      documentType === 'INVOICE' ? "Invoice No:"
+        : documentType === 'QUOTATION' ? "Quotation No:"
+          : "Proforma No:",
+      invoice.id
+    );
+    printRow("Issued Date:", invoice.issuedDate || new Date().toISOString().split('T')[0]);
 
-    // Status
-    let statusColor = [245, 158, 11]; // orange
-    if (invoice.status === "Paid") statusColor = [16, 185, 129];
-    if (invoice.status === "Overdue") statusColor = [239, 68, 68];
+    if (documentType === 'QUOTATION' && invoice.quotationValidUntil) {
+      printRow("Valid Until:", invoice.quotationValidUntil);
+    } else if (invoice.dueDate) {
+      printRow("Due Date:", invoice.dueDate);
+    }
 
-    doc.setTextColor(0, 0, 0); // Pure Black
-    doc.text("Status:", labelX, y);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.text(invoice.status, valX, y);
+    // Status (Removed from PDF as requested, but keeping code if needed later commented out)
+    // doc.text("Status:", labelX, y);
+    // doc.text(invoice.status, valX, y);
 
     // --- Table ---
     // Removed "Category" column as requested
-    const includeFreightCol = invoice.productFreightTotal > 0;
     const tableHeader = [
       "Description",
-      // "Category", // Removed
+      // "Category", // Removed (user preference)
       "Qty",
       "Unit Price",
       "Total",
-      ...(includeFreightCol ? ["Freight"] : []),
     ];
 
     const tableBody = invoice.items.map((l) => [
       l.description || l.name,
-      // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-", // Removed
+      // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-",
       String(l.quantity),
       l.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       (l.unitPrice * l.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      ...(includeFreightCol ? [(l.productFreight || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })] : []),
     ]);
 
     autoTable(doc, {
-      startY: detailsY + detailsHeight + 10,
+      startY: detailsY + maxDetailsHeight + 10,
       head: [tableHeader],
       body: tableBody,
       theme: "grid",
@@ -262,22 +274,11 @@ export const generateInvoicePDF = async (
       margin: { left: margin, right: margin },
     });
 
-    // --- Footer Section (Bottom Boxes) ---
+    // --- Footer Section (Bottom Boxes) - DYNAMIC HEIGHT ---
     const finalY = (doc as any).lastAutoTable?.finalY || 200;
     const footerTopY = finalY + 10;
 
-    // Check page break
-    if (footerTopY + 50 > pageHeight) {
-      doc.addPage();
-    }
-
-    // Payment Box (Left)
-    drawBox(margin, footerTopY, boxWidth, 45, "Payment Details");
-
-    y = footerTopY + 12;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9); // Size 9 for better visibility
-    doc.setTextColor(0, 0, 0); // Pure Black
+    // Calculate Payment box height
     const bankDetails = [
       "Bank: I&M BANK",
       "Branch: RUIRU BRANCH",
@@ -286,14 +287,32 @@ export const generateInvoicePDF = async (
       "SWIFT CODE: IMBLKENA",
       "BANK CODE: 57 | BRANCH CODE: 055"
     ];
+    const paymentHeight = 7 + (bankDetails.length * 4) + 4; // Header + lines + padding
+
+    // Calculate Summary box height (Subtotal + VAT + Grand Total bar)
+    const summaryHeight = 7 + 6 + 6 + 10 + 4; // Header + subtotal + VAT + total bar + padding
+
+    const maxFooterHeight = Math.max(paymentHeight, summaryHeight);
+
+    // Check page break
+    if (footerTopY + maxFooterHeight > pageHeight) {
+      doc.addPage();
+    }
+
+    // Payment Box (Left)
+    drawBox(margin, footerTopY, boxWidth, maxFooterHeight, "Payment Details");
+
+    y = footerTopY + 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0); // Pure Black
     bankDetails.forEach(line => {
       doc.text(line, margin + 4, y);
       y += 4;
     });
 
     // Summary Box (Right)
-    // Increased height to accommodate VAT
-    drawBox(rightBoxX, footerTopY, boxWidth, 45, "Summary");
+    drawBox(rightBoxX, footerTopY, boxWidth, maxFooterHeight, "Summary");
 
     y = footerTopY + 14;
     const sumLabelX = rightBoxX + 4;
@@ -302,7 +321,7 @@ export const generateInvoicePDF = async (
     // Calculations for display
     const vatRate = 0.16;
     const vatAmount = invoice.subtotal * vatRate;
-    const finalTotal = invoice.subtotal + vatAmount + invoice.productFreightTotal;
+    const finalTotal = invoice.subtotal + vatAmount;
 
     // Subtotal
     doc.setFontSize(9);
@@ -316,12 +335,7 @@ export const generateInvoicePDF = async (
     doc.text(`Ksh ${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
     y += 6;
 
-    // Freight
-    if (invoice.productFreightTotal > 0) {
-      doc.text("Freight", sumLabelX, y);
-      doc.text(`Ksh ${invoice.productFreightTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
-      y += 6;
-    }
+
 
     // Grand Total Bar inside the box
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -332,6 +346,40 @@ export const generateInvoicePDF = async (
     doc.text("Grand Total", sumLabelX, y + 2);
     // Use the calculated total including VAT
     doc.text(`Ksh ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y + 2, { align: "right" });
+
+    // --- Custom Sections (Responsibilities & Terms) ---
+    // Calculate start Y for custom sections (below the lowest box)
+    let customY = Math.max(y, footerTopY + maxFooterHeight) + 10;
+
+    const printCustomSection = (title: string, content: string) => {
+      // Check page break
+      if (customY + 20 > pageHeight - 20) {
+        doc.addPage();
+        customY = margin;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(title, margin, customY);
+      customY += 5;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+
+      const lines = doc.splitTextToSize(content, pageWidth - (margin * 2));
+      doc.text(lines, margin, customY);
+      customY += (lines.length * 4) + 8; // Spacing for next section
+    };
+
+    if (invoice.clientResponsibilities) {
+      printCustomSection("Client Responsibilities", invoice.clientResponsibilities);
+    }
+
+    if (invoice.termsAndConditions) {
+      printCustomSection("Terms & Conditions", invoice.termsAndConditions);
+    }
 
     // --- Footer Text ---
     const footerParamsY = pageHeight - 12;

@@ -6,7 +6,6 @@
  * 
  * Key Features:
  * - Categorized Inventory: Products, Mobilization, Services.
- * - Auto-Calculations: Freight costs based on weight and rate.
  * - Currency Management: Input prices in Ksh or USD with auto-conversion.
  * - Data Persistence: Uses localStorage for stock data and draft forms.
  * - Import/Export: CSV support for bulk data management.
@@ -28,8 +27,7 @@ import {
   FaFileImport,
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
-import logo from "../assets/logo.jpg";
-import { STORAGE_KEYS, COMPANY, DEFAULT_RATES } from "../constants";
+import { STORAGE_KEYS, DEFAULT_RATES } from "../constants";
 
 /* -------------------------
    Types & LocalStorage keys
@@ -43,9 +41,7 @@ export interface StockItem {
   quantity: number;
   priceKsh: number; // unit price in Ksh
   priceUSD?: number; // unit price in USD (kept for currency sync)
-  weight?: number; // kg (optional; used primarily for products)
   description?: string;
-  // productFreight not stored separately because it's derived as weight * freightRate * qty
 }
 
 /* -------------------------
@@ -71,7 +67,7 @@ const genId = (prefix = "I") => `${prefix}${Math.floor(100000 + Math.random() * 
 const downloadCSV = (stock: Record<Category, StockItem[]>, filename = "stock_export.csv") => {
   const rows: string[] = [];
   // header
-  rows.push(["id", "name", "category", "quantity", "priceKsh", "priceUSD", "weight", "description"].join(","));
+  rows.push(["id", "name", "category", "quantity", "priceKsh", "priceUSD", "description"].join(","));
   // flatten
   (Object.keys(stock) as Category[]).forEach((cat) => {
     stock[cat].forEach((it) => {
@@ -82,7 +78,6 @@ const downloadCSV = (stock: Record<Category, StockItem[]>, filename = "stock_exp
         it.quantity,
         it.priceKsh,
         it.priceUSD ?? "",
-        it.weight ?? "",
         `"${(it.description || "").replace(/"/g, '""')}"`,
       ];
       rows.push(r.join(","));
@@ -119,60 +114,56 @@ const getInitialStock = (): Record<Category, StockItem[]> => {
   // Used if no data is found in storage.
   return {
     products: [
-      { id: genId(), name: "Mono Perc Solar Panel (450W)", category: "products", quantity: 50, priceKsh: 18500, priceUSD: 145, weight: 22, description: "High-efficiency monocrystalline solar panel" },
-      { id: genId(), name: "Victron MultiPlus-II 48/5000", category: "products", quantity: 8, priceKsh: 245000, priceUSD: 1900, weight: 30, description: "48V Inverter/Charger 5000VA" },
-      { id: genId(), name: "SmartSolar MPPT 250/100", category: "products", quantity: 15, priceKsh: 85000, priceUSD: 650, weight: 4.5, description: "Solar Max Power Point Tracker" },
-      { id: genId(), name: "LiFePO4 Lithium Battery (48V 100Ah)", category: "products", quantity: 12, priceKsh: 165000, priceUSD: 1280, weight: 45, description: "Deep cycle lithium energy storage" },
-      { id: genId(), name: "Pylontech US3000C Battery Module", category: "products", quantity: 10, priceKsh: 195000, priceUSD: 1500, weight: 32, description: "3.5kWh Li-ion Battery Module" },
-      { id: genId(), name: "Victron Cerbo GX", category: "products", quantity: 20, priceKsh: 45000, priceUSD: 350, weight: 1, description: "System monitoring center" },
-      { id: genId(), name: "Victron Lynx Distributor", category: "products", quantity: 25, priceKsh: 28000, priceUSD: 215, weight: 2, description: "Modular DC distribution system" },
-      { id: genId(), name: "Solar PV Cable (6mm²)", category: "products", quantity: 1000, priceKsh: 150, priceUSD: 1.2, weight: 0.1, description: "UV resistant DC solar cable (per meter)" },
-      { id: genId(), name: "MC4 Solar Connectors (Pair)", category: "products", quantity: 500, priceKsh: 250, priceUSD: 2, weight: 0.05, description: "Male/Female connector pair" },
-      { id: genId(), name: "12U Wall Mount Server Rack", category: "products", quantity: 5, priceKsh: 12000, priceUSD: 95, weight: 15, description: "Network cabinet with glass door" },
-      { id: genId(), name: "Ubiquiti UniFi Access Point (WiFi 6)", category: "products", quantity: 30, priceKsh: 22000, priceUSD: 170, weight: 0.8, description: "Long-range enterprise WiFi AP" },
-      { id: genId(), name: "Mikrotik Cloud Core Router", category: "products", quantity: 4, priceKsh: 65000, priceUSD: 500, weight: 3, description: "High performance enterprise router" },
-      { id: genId(), name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", category: "products", quantity: 10, priceKsh: 45000, priceUSD: 350, weight: 12, description: "Online Double Conversion UPS" },
-      { id: genId(), name: "Cisco 24-Port Gigabit Switch", category: "products", quantity: 6, priceKsh: 35000, priceUSD: 270, weight: 4, description: "Managed L2 switch" },
-      { id: genId(), name: "Cat6 Ethernet Cable (305m Box)", category: "products", quantity: 20, priceKsh: 18000, priceUSD: 140, weight: 10, description: "Pure Copper UTP Cable" },
+      { id: genId(), name: "Mono Perc Solar Panel (450W)", category: "products", quantity: 50, priceKsh: 18500, priceUSD: 145, description: "High-efficiency monocrystalline solar panel" },
+      { id: genId(), name: "Victron MultiPlus-II 48/5000", category: "products", quantity: 8, priceKsh: 245000, priceUSD: 1900, description: "48V Inverter/Charger 5000VA" },
+      { id: genId(), name: "SmartSolar MPPT 250/100", category: "products", quantity: 15, priceKsh: 85000, priceUSD: 650, description: "Solar Max Power Point Tracker" },
+      { id: genId(), name: "LiFePO4 Lithium Battery (48V 100Ah)", category: "products", quantity: 12, priceKsh: 165000, priceUSD: 1280, description: "Deep cycle lithium energy storage" },
+      { id: genId(), name: "Pylontech US3000C Battery Module", category: "products", quantity: 10, priceKsh: 195000, priceUSD: 1500, description: "3.5kWh Li-ion Battery Module" },
+      { id: genId(), name: "Victron Cerbo GX", category: "products", quantity: 20, priceKsh: 45000, priceUSD: 350, description: "System monitoring center" },
+      { id: genId(), name: "Victron Lynx Distributor", category: "products", quantity: 25, priceKsh: 28000, priceUSD: 215, description: "Modular DC distribution system" },
+      { id: genId(), name: "Solar PV Cable (6mm²)", category: "products", quantity: 1000, priceKsh: 150, priceUSD: 1.2, description: "UV resistant DC solar cable (per meter)" },
+      { id: genId(), name: "MC4 Solar Connectors (Pair)", category: "products", quantity: 500, priceKsh: 250, priceUSD: 2, description: "Male/Female connector pair" },
+      { id: genId(), name: "12U Wall Mount Server Rack", category: "products", quantity: 5, priceKsh: 12000, priceUSD: 95, description: "Network cabinet with glass door" },
+      { id: genId(), name: "Ubiquiti UniFi Access Point (WiFi 6)", category: "products", quantity: 30, priceKsh: 22000, priceUSD: 170, description: "Long-range enterprise WiFi AP" },
+      { id: genId(), name: "Mikrotik Cloud Core Router", category: "products", quantity: 4, priceKsh: 65000, priceUSD: 500, description: "High performance enterprise router" },
+      { id: genId(), name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", category: "products", quantity: 10, priceKsh: 45000, priceUSD: 350, description: "Online Double Conversion UPS" },
+      { id: genId(), name: "Cisco 24-Port Gigabit Switch", category: "products", quantity: 6, priceKsh: 35000, priceUSD: 270, description: "Managed L2 switch" },
+      { id: genId(), name: "Cat6 Ethernet Cable (305m Box)", category: "products", quantity: 20, priceKsh: 18000, priceUSD: 140, description: "Pure Copper UTP Cable" },
     ],
     mobilization: [
-      { id: genId(), name: "Site Mobilization & Logistics (Local)", category: "mobilization", quantity: 1, priceKsh: 15000, priceUSD: 115, weight: 0, description: "Transport and setup costs within Nairobi" },
-      { id: genId(), name: "Site Mobilization & Logistics (Upcountry)", category: "mobilization", quantity: 1, priceKsh: 45000, priceUSD: 350, weight: 0, description: "Transport and setup costs outside Nairobi" },
-      { id: genId(), name: "Specialized Equipment Rental (Crane)", category: "mobilization", quantity: 1, priceKsh: 25000, priceUSD: 195, weight: 0, description: "Crane hire for panel lifting" },
-      { id: genId(), name: "Scaffolding Setup & Rental", category: "mobilization", quantity: 1, priceKsh: 12000, priceUSD: 95, weight: 0, description: "Per week rental" },
-      { id: genId(), name: "Technician Travel & Accommodation (Per Day)", category: "mobilization", quantity: 4, priceKsh: 8000, priceUSD: 60, weight: 0, description: "Per technician per day" },
-      { id: genId(), name: "Safety Gear & PPE Provision", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Safety compliance kit" },
-      { id: genId(), name: "Site Survey & Preliminary Assessment", category: "mobilization", quantity: 1, priceKsh: 10000, priceUSD: 80, weight: 0, description: "Initial site visit" },
-      { id: genId(), name: "Transport - Pickup Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 100, priceUSD: 0.8, weight: 0, description: "Logistics cost per km" },
-      { id: genId(), name: "Transport - 3 Ton Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 150, priceUSD: 1.2, weight: 0, description: "Heavy load transport per km" },
-      { id: genId(), name: "Generator Rental (Per Day)", category: "mobilization", quantity: 2, priceKsh: 8500, priceUSD: 65, weight: 0, description: "Backup power during installation" },
-      { id: genId(), name: "Network Tool Kit Mobilization", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, weight: 0, description: "Specialized networking tools" },
-      { id: genId(), name: "Fiber Splicing Kit Rental", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Fusion splicer daily rate" },
-      { id: genId(), name: "Post-Installation Cleanup", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, weight: 0, description: "Site cleaning and waste disposal" },
+      { id: genId(), name: "Freight Charges", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 38, description: "Shipping and transport costs" },
+      { id: genId(), name: "Site Mobilization & Logistics (Local)", category: "mobilization", quantity: 1, priceKsh: 15000, priceUSD: 115, description: "Transport and setup costs within Nairobi" },
+      { id: genId(), name: "Site Mobilization & Logistics (Upcountry)", category: "mobilization", quantity: 1, priceKsh: 45000, priceUSD: 350, description: "Transport and setup costs outside Nairobi" },
+      { id: genId(), name: "Specialized Equipment Rental (Crane)", category: "mobilization", quantity: 1, priceKsh: 25000, priceUSD: 195, description: "Crane hire for panel lifting" },
+      { id: genId(), name: "Scaffolding Setup & Rental", category: "mobilization", quantity: 1, priceKsh: 12000, priceUSD: 95, description: "Per week rental" },
+      { id: genId(), name: "Technician Travel & Accommodation (Per Day)", category: "mobilization", quantity: 4, priceKsh: 8000, priceUSD: 60, description: "Per technician per day" },
+      { id: genId(), name: "Safety Gear & PPE Provision", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, description: "Safety compliance kit" },
+      { id: genId(), name: "Site Survey & Preliminary Assessment", category: "mobilization", quantity: 1, priceKsh: 10000, priceUSD: 80, description: "Initial site visit" },
+      { id: genId(), name: "Transport - Pickup Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 100, priceUSD: 0.8, description: "Logistics cost per km" },
+      { id: genId(), name: "Transport - 3 Ton Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 150, priceUSD: 1.2, description: "Heavy load transport per km" },
+      { id: genId(), name: "Generator Rental (Per Day)", category: "mobilization", quantity: 2, priceKsh: 8500, priceUSD: 65, description: "Backup power during installation" },
+      { id: genId(), name: "Network Tool Kit Mobilization", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, description: "Specialized networking tools" },
+      { id: genId(), name: "Fiber Splicing Kit Rental", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, description: "Fusion splicer daily rate" },
+      { id: genId(), name: "Post-Installation Cleanup", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, description: "Site cleaning and waste disposal" },
     ],
     services: [
-      { id: genId(), name: "Solar System Installation (Labor)", category: "services", quantity: 1, priceKsh: 25000, priceUSD: 195, weight: 0, description: "Professional installation labor charge" },
-      { id: genId(), name: "Network Infrastructure Setup (Labor)", category: "services", quantity: 1, priceKsh: 35000, priceUSD: 270, weight: 0, description: "Cabling and configuration labor" },
-      { id: genId(), name: "Solar Power Audit & Consulting", category: "services", quantity: 1, priceKsh: 15000, priceUSD: 115, weight: 0, description: "Energy needs assessment report" },
-      { id: genId(), name: "Annual Maintenance Contract (Solar)", category: "services", quantity: 1, priceKsh: 50000, priceUSD: 385, weight: 0, description: "Preventive maintenance service per year" },
-      { id: genId(), name: "Annual Maintenance Contract (IT/Network)", category: "services", quantity: 1, priceKsh: 120000, priceUSD: 920, weight: 0, description: "Comprehensive IT support per year" },
-      { id: genId(), name: "Fiber Optic Splicing & Termination", category: "services", quantity: 24, priceKsh: 1500, priceUSD: 12, weight: 0, description: "Per core splicing charge" },
-      { id: genId(), name: "CCTV Camera Installation & Config", category: "services", quantity: 8, priceKsh: 3500, priceUSD: 27, weight: 0, description: "Per camera installation" },
-      { id: genId(), name: "Access Control System Setup", category: "services", quantity: 1, priceKsh: 18000, priceUSD: 140, weight: 0, description: "Biometric/Card reader config" },
-      { id: genId(), name: "Structured Cabling (Per Point)", category: "services", quantity: 50, priceKsh: 2500, priceUSD: 20, weight: 0, description: "Cable pulling and termination" },
-      { id: genId(), name: "Server Room Configuration", category: "services", quantity: 1, priceKsh: 45000, priceUSD: 350, weight: 0, description: "Rack mounting and cable management" },
-      { id: genId(), name: "Wi-Fi Site Survey & Heatmapping", category: "services", quantity: 1, priceKsh: 20000, priceUSD: 155, weight: 0, description: "Coverage analysis report" },
-      { id: genId(), name: "Remote System Monitoring (Monthly)", category: "services", quantity: 12, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Victron VRM / Ubiquiti remote support" },
-      { id: genId(), name: "IT Support Retainer (Standard)", category: "services", quantity: 12, priceKsh: 30000, priceUSD: 230, weight: 0, description: "Monthly support fee" },
-      { id: genId(), name: "Emergency Troubleshooting Call-out", category: "services", quantity: 1, priceKsh: 10000, priceUSD: 80, weight: 0, description: "Urgent site visit fee" },
-      { id: genId(), name: "Firmware Update & Optimization", category: "services", quantity: 1, priceKsh: 8000, priceUSD: 60, weight: 0, description: "System software upgrade" },
+      { id: genId(), name: "Solar System Installation (Labor)", category: "services", quantity: 1, priceKsh: 25000, priceUSD: 195, description: "Professional installation labor charge" },
+      { id: genId(), name: "Network Infrastructure Setup (Labor)", category: "services", quantity: 1, priceKsh: 35000, priceUSD: 270, description: "Cabling and configuration labor" },
+      { id: genId(), name: "Solar Power Audit & Consulting", category: "services", quantity: 1, priceKsh: 15000, priceUSD: 115, description: "Energy needs assessment report" },
+      { id: genId(), name: "Annual Maintenance Contract (Solar)", category: "services", quantity: 1, priceKsh: 50000, priceUSD: 385, description: "Preventive maintenance service per year" },
+      { id: genId(), name: "Annual Maintenance Contract (IT/Network)", category: "services", quantity: 1, priceKsh: 120000, priceUSD: 920, description: "Comprehensive IT support per year" },
+      { id: genId(), name: "Fiber Optic Splicing & Termination", category: "services", quantity: 24, priceKsh: 1500, priceUSD: 12, description: "Per core splicing charge" },
+      { id: genId(), name: "CCTV Camera Installation & Config", category: "services", quantity: 8, priceKsh: 3500, priceUSD: 27, description: "Per camera installation" },
+      { id: genId(), name: "Access Control System Setup", category: "services", quantity: 1, priceKsh: 18000, priceUSD: 140, description: "Biometric/Card reader config" },
+      { id: genId(), name: "Structured Cabling (Per Point)", category: "services", quantity: 50, priceKsh: 2500, priceUSD: 20, description: "Cable pulling and termination" },
+      { id: genId(), name: "Server Room Configuration", category: "services", quantity: 1, priceKsh: 45000, priceUSD: 350, description: "Rack mounting and cable management" },
+      { id: genId(), name: "Wi-Fi Site Survey & Heatmapping", category: "services", quantity: 1, priceKsh: 20000, priceUSD: 155, description: "Coverage analysis report" },
+      { id: genId(), name: "Remote System Monitoring (Monthly)", category: "services", quantity: 12, priceKsh: 5000, priceUSD: 40, description: "Victron VRM / Ubiquiti remote support" },
+      { id: genId(), name: "IT Support Retainer (Standard)", category: "services", quantity: 12, priceKsh: 30000, priceUSD: 230, description: "Monthly support fee" },
+      { id: genId(), name: "Emergency Troubleshooting Call-out", category: "services", quantity: 1, priceKsh: 10000, priceUSD: 80, description: "Urgent site visit fee" },
+      { id: genId(), name: "Firmware Update & Optimization", category: "services", quantity: 1, priceKsh: 8000, priceUSD: 60, description: "System software upgrade" },
     ],
   };
-};
-
-const getInitialFreight = (): number => {
-  const raw = localStorage.getItem(STORAGE_KEYS.FREIGHT_RATE);
-  return raw ? Number(raw) : DEFAULT_RATES.FREIGHT;
 };
 
 const getInitialCurrencyRate = (): number => {
@@ -193,7 +184,6 @@ const Stock: React.FC = () => {
   const [search, setSearch] = useState<string>("");
 
   // Configuration Rates (Persisted)
-  const [freightRate, setFreightRate] = useState<number>(getInitialFreight);
   const [currencyRate, setCurrencyRate] = useState<number>(getInitialCurrencyRate);
 
   // UI Toggles
@@ -205,7 +195,6 @@ const Stock: React.FC = () => {
   const [formQty, setFormQty] = useState<number>(1);
   const [formPriceKsh, setFormPriceKsh] = useState<number>(0);
   const [formPriceUSD, setFormPriceUSD] = useState<number>(0);
-  const [formWeight, setFormWeight] = useState<number | undefined>(undefined);
   const [formDescription, setFormDescription] = useState<string>("");
 
   /* ---------------------
@@ -215,10 +204,6 @@ const Stock: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(stock));
   }, [stock]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FREIGHT_RATE, String(freightRate));
-  }, [freightRate]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.CURRENCY_RATE, String(currencyRate));
@@ -232,13 +217,12 @@ const Stock: React.FC = () => {
       formQty,
       formPriceKsh,
       formPriceUSD,
-      formWeight,
       formDescription,
       activeCategory,
       showDescriptions,
     };
     localStorage.setItem(STORAGE_KEYS.DRAFT, JSON.stringify(draft));
-  }, [editingId, formName, formQty, formPriceKsh, formPriceUSD, formWeight, formDescription, activeCategory, showDescriptions]);
+  }, [editingId, formName, formQty, formPriceKsh, formPriceUSD, formDescription, activeCategory, showDescriptions]);
 
   // Restore Draft on Mount
   useEffect(() => {
@@ -249,7 +233,6 @@ const Stock: React.FC = () => {
       setFormQty(d.formQty ?? 1);
       setFormPriceKsh(d.formPriceKsh ?? 0);
       setFormPriceUSD(d.formPriceUSD ?? 0);
-      setFormWeight(d.formWeight ?? undefined);
       setFormDescription(d.formDescription ?? "");
       setActiveCategory(d.activeCategory ?? "products");
       setShowDescriptions(typeof d.showDescriptions === "boolean" ? d.showDescriptions : true);
@@ -274,12 +257,6 @@ const Stock: React.FC = () => {
       .reduce((s, it) => s + (it.priceKsh || 0) * (it.quantity || 0), 0);
   }, [stock]);
 
-  // Calculate Total Projected Freight Cost
-  const totalFreight = useMemo(() => {
-    return (Object.values(stock) as StockItem[][])
-      .flat()
-      .reduce((s, it) => s + ((it.weight || 0) * freightRate * (it.quantity || 0)), 0);
-  }, [stock, freightRate]);
 
   /* ---------------------
      Currency Sync
@@ -304,7 +281,7 @@ const Stock: React.FC = () => {
   // Implements 'Merge-on-add' if a duplicate name is detected in the same category.
   const handleAddOrUpdate = () => {
     if (!formName.trim()) return alert("Please enter a name.");
-    if (formPriceKsh <= 0) return alert("Enter a valid unit price in Ksh.");
+    if (formPriceKsh < 0) return alert("Enter a valid unit price in Ksh."); // Allow 0
     if (formQty <= 0) return alert("Enter a valid quantity.");
 
     const cat = activeCategory;
@@ -322,7 +299,6 @@ const Stock: React.FC = () => {
             quantity: formQty,
             priceKsh: formPriceKsh,
             priceUSD: formPriceUSD,
-            weight: formWeight ?? undefined,
             description: showDescriptions ? formDescription || undefined : undefined,
           }
           : it
@@ -339,7 +315,6 @@ const Stock: React.FC = () => {
         quantity: newQty,
         priceKsh: formPriceKsh, // Updates to latest price
         priceUSD: formPriceUSD,
-        weight: formWeight ?? found.weight,
         description: showDescriptions ? formDescription || found.description : undefined,
       };
       setStock({ ...stock, [cat]: updated });
@@ -353,7 +328,6 @@ const Stock: React.FC = () => {
         quantity: formQty,
         priceKsh: formPriceKsh,
         priceUSD: formPriceUSD,
-        weight: formWeight ?? undefined,
         description: showDescriptions ? formDescription || undefined : undefined,
       };
       setStock({ ...stock, [cat]: [...stock[cat], newItem] });
@@ -364,7 +338,6 @@ const Stock: React.FC = () => {
     setFormQty(1);
     setFormPriceKsh(0);
     setFormPriceUSD(0);
-    setFormWeight(undefined);
     setFormDescription("");
     setEditingId(null);
   };
@@ -377,7 +350,6 @@ const Stock: React.FC = () => {
     setFormQty(it.quantity || 1);
     setFormPriceKsh(it.priceKsh || 0);
     setFormPriceUSD(it.priceUSD ?? Number(((it.priceKsh || 0) / currencyRate).toFixed(2)));
-    setFormWeight(it.weight);
     setFormDescription(it.description || "");
     if (it.description) setShowDescriptions(true);
   };
@@ -391,20 +363,19 @@ const Stock: React.FC = () => {
 
   // Nuke all data
   const handleClearAll = () => {
-    if (!confirm("This will clear ALL stock data and freight & currency rates. Proceed?")) return;
+    if (!confirm("This will clear ALL stock data and rates. Proceed?")) return;
     localStorage.removeItem(STORAGE_KEYS.STOCK);
-    localStorage.removeItem(STORAGE_KEYS.FREIGHT_RATE);
+    localStorage.removeItem(STORAGE_KEYS.FREIGHT_RATE); // Clean up
     localStorage.removeItem(STORAGE_KEYS.CURRENCY_RATE);
     localStorage.removeItem(STORAGE_KEYS.DRAFT);
     setStock({ products: [], mobilization: [], services: [] });
-    setFreightRate(getInitialFreight());
+
     setCurrencyRate(getInitialCurrencyRate());
     // clear form
     setFormName("");
     setFormQty(1);
     setFormPriceKsh(0);
     setFormPriceUSD(0);
-    setFormWeight(undefined);
     setFormDescription("");
     setEditingId(null);
   };
@@ -453,8 +424,7 @@ const Stock: React.FC = () => {
           quantity: 1,
           priceKsh: parseFloat(cols[2]) || 0,
           priceUSD: parseFloat(cols[3]) || 0,
-          weight: parseFloat(cols[4]) || 0,
-          description: cols[5] || ""
+          description: cols[4] || ""
         };
 
         newItems[cat].push(newItem);
@@ -473,7 +443,7 @@ const Stock: React.FC = () => {
           alert("Import successful!");
         }
       } else {
-        alert("No valid items found. check format: Category,Name,PriceKsh,PriceUSD,Weight,Description");
+        alert("No valid items found. check format: Category,Name,PriceKsh,PriceUSD,Description");
       }
     };
     reader.readAsText(file);
@@ -486,53 +456,54 @@ const Stock: React.FC = () => {
   const seedSample = () => {
     const sample: Record<Category, StockItem[]> = {
       products: [
-        { id: "P1001", name: "Mono Perc Solar Panel (450W)", category: "products", quantity: 50, priceKsh: 18500, priceUSD: 145, weight: 22, description: "High-efficiency monocrystalline solar panel" },
-        { id: "P1002", name: "Victron MultiPlus-II 48/5000", category: "products", quantity: 8, priceKsh: 245000, priceUSD: 1900, weight: 30, description: "48V Inverter/Charger 5000VA" },
-        { id: "P1003", name: "SmartSolar MPPT 250/100", category: "products", quantity: 15, priceKsh: 85000, priceUSD: 650, weight: 4.5, description: "Solar Max Power Point Tracker" },
-        { id: "P1004", name: "LiFePO4 Lithium Battery (48V 100Ah)", category: "products", quantity: 12, priceKsh: 165000, priceUSD: 1280, weight: 45, description: "Deep cycle lithium energy storage" },
-        { id: genId(), name: "Pylontech US3000C Battery Module", category: "products", quantity: 10, priceKsh: 195000, priceUSD: 1500, weight: 32, description: "3.5kWh Li-ion Battery Module" },
-        { id: genId(), name: "Victron Cerbo GX", category: "products", quantity: 20, priceKsh: 45000, priceUSD: 350, weight: 1, description: "System monitoring center" },
-        { id: genId(), name: "Victron Lynx Distributor", category: "products", quantity: 25, priceKsh: 28000, priceUSD: 215, weight: 2, description: "Modular DC distribution system" },
-        { id: genId(), name: "Solar PV Cable (6mm²)", category: "products", quantity: 1000, priceKsh: 150, priceUSD: 1.2, weight: 0.1, description: "UV resistant DC solar cable (per meter)" },
-        { id: genId(), name: "MC4 Solar Connectors (Pair)", category: "products", quantity: 500, priceKsh: 250, priceUSD: 2, weight: 0.05, description: "Male/Female connector pair" },
-        { id: genId(), name: "12U Wall Mount Server Rack", category: "products", quantity: 5, priceKsh: 12000, priceUSD: 95, weight: 15, description: "Network cabinet with glass door" },
-        { id: genId(), name: "Ubiquiti UniFi Access Point (WiFi 6)", category: "products", quantity: 30, priceKsh: 22000, priceUSD: 170, weight: 0.8, description: "Long-range enterprise WiFi AP" },
-        { id: genId(), name: "Mikrotik Cloud Core Router", category: "products", quantity: 4, priceKsh: 65000, priceUSD: 500, weight: 3, description: "High performance enterprise router" },
-        { id: genId(), name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", category: "products", quantity: 10, priceKsh: 45000, priceUSD: 350, weight: 12, description: "Online Double Conversion UPS" },
-        { id: genId(), name: "Cisco 24-Port Gigabit Switch", category: "products", quantity: 6, priceKsh: 35000, priceUSD: 270, weight: 4, description: "Managed L2 switch" },
-        { id: genId(), name: "Cat6 Ethernet Cable (305m Box)", category: "products", quantity: 20, priceKsh: 18000, priceUSD: 140, weight: 10, description: "Pure Copper UTP Cable" },
+        { id: "P1001", name: "Mono Perc Solar Panel (450W)", category: "products", quantity: 50, priceKsh: 18500, priceUSD: 145, description: "High-efficiency monocrystalline solar panel" },
+        { id: "P1002", name: "Victron MultiPlus-II 48/5000", category: "products", quantity: 8, priceKsh: 245000, priceUSD: 1900, description: "48V Inverter/Charger 5000VA" },
+        { id: "P1003", name: "SmartSolar MPPT 250/100", category: "products", quantity: 15, priceKsh: 85000, priceUSD: 650, description: "Solar Max Power Point Tracker" },
+        { id: "P1004", name: "LiFePO4 Lithium Battery (48V 100Ah)", category: "products", quantity: 12, priceKsh: 165000, priceUSD: 1280, description: "Deep cycle lithium energy storage" },
+        { id: genId(), name: "Pylontech US3000C Battery Module", category: "products", quantity: 10, priceKsh: 195000, priceUSD: 1500, description: "3.5kWh Li-ion Battery Module" },
+        { id: genId(), name: "Victron Cerbo GX", category: "products", quantity: 20, priceKsh: 45000, priceUSD: 350, description: "System monitoring center" },
+        { id: genId(), name: "Victron Lynx Distributor", category: "products", quantity: 25, priceKsh: 28000, priceUSD: 215, description: "Modular DC distribution system" },
+        { id: genId(), name: "Solar PV Cable (6mm²)", category: "products", quantity: 1000, priceKsh: 150, priceUSD: 1.2, description: "UV resistant DC solar cable (per meter)" },
+        { id: genId(), name: "MC4 Solar Connectors (Pair)", category: "products", quantity: 500, priceKsh: 250, priceUSD: 2, description: "Male/Female connector pair" },
+        { id: genId(), name: "12U Wall Mount Server Rack", category: "products", quantity: 5, priceKsh: 12000, priceUSD: 95, description: "Network cabinet with glass door" },
+        { id: genId(), name: "Ubiquiti UniFi Access Point (WiFi 6)", category: "products", quantity: 30, priceKsh: 22000, priceUSD: 170, description: "Long-range enterprise WiFi AP" },
+        { id: genId(), name: "Mikrotik Cloud Core Router", category: "products", quantity: 4, priceKsh: 65000, priceUSD: 500, description: "High performance enterprise router" },
+        { id: genId(), name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", category: "products", quantity: 10, priceKsh: 45000, priceUSD: 350, description: "Online Double Conversion UPS" },
+        { id: genId(), name: "Cisco 24-Port Gigabit Switch", category: "products", quantity: 6, priceKsh: 35000, priceUSD: 270, description: "Managed L2 switch" },
+        { id: genId(), name: "Cat6 Ethernet Cable (305m Box)", category: "products", quantity: 20, priceKsh: 18000, priceUSD: 140, description: "Pure Copper UTP Cable" },
       ],
       mobilization: [
-        { id: genId(), name: "Site Mobilization & Logistics (Local)", category: "mobilization", quantity: 1, priceKsh: 15000, priceUSD: 115, weight: 0, description: "Transport and setup costs within Nairobi" },
-        { id: genId(), name: "Site Mobilization & Logistics (Upcountry)", category: "mobilization", quantity: 1, priceKsh: 45000, priceUSD: 350, weight: 0, description: "Transport and setup costs outside Nairobi" },
-        { id: genId(), name: "Specialized Equipment Rental (Crane)", category: "mobilization", quantity: 1, priceKsh: 25000, priceUSD: 195, weight: 0, description: "Crane hire for panel lifting" },
-        { id: genId(), name: "Scaffolding Setup & Rental", category: "mobilization", quantity: 1, priceKsh: 12000, priceUSD: 95, weight: 0, description: "Per week rental" },
-        { id: genId(), name: "Technician Travel & Accommodation (Per Day)", category: "mobilization", quantity: 4, priceKsh: 8000, priceUSD: 60, weight: 0, description: "Per technician per day" },
-        { id: genId(), name: "Safety Gear & PPE Provision", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Safety compliance kit" },
-        { id: genId(), name: "Site Survey & Preliminary Assessment", category: "mobilization", quantity: 1, priceKsh: 10000, priceUSD: 80, weight: 0, description: "Initial site visit" },
-        { id: genId(), name: "Transport - Pickup Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 100, priceUSD: 0.8, weight: 0, description: "Logistics cost per km" },
-        { id: genId(), name: "Transport - 3 Ton Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 150, priceUSD: 1.2, weight: 0, description: "Heavy load transport per km" },
-        { id: genId(), name: "Generator Rental (Per Day)", category: "mobilization", quantity: 2, priceKsh: 8500, priceUSD: 65, weight: 0, description: "Backup power during installation" },
-        { id: genId(), name: "Network Tool Kit Mobilization", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, weight: 0, description: "Specialized networking tools" },
-        { id: genId(), name: "Fiber Splicing Kit Rental", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Fusion splicer daily rate" },
-        { id: genId(), name: "Post-Installation Cleanup", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, weight: 0, description: "Site cleaning and waste disposal" },
+        { id: genId(), name: "Freight Charges", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 38, description: "Shipping and transport costs" },
+        { id: genId(), name: "Site Mobilization & Logistics (Local)", category: "mobilization", quantity: 1, priceKsh: 15000, priceUSD: 115, description: "Transport and setup costs within Nairobi" },
+        { id: genId(), name: "Site Mobilization & Logistics (Upcountry)", category: "mobilization", quantity: 1, priceKsh: 45000, priceUSD: 350, description: "Transport and setup costs outside Nairobi" },
+        { id: genId(), name: "Specialized Equipment Rental (Crane)", category: "mobilization", quantity: 1, priceKsh: 25000, priceUSD: 195, description: "Crane hire for panel lifting" },
+        { id: genId(), name: "Scaffolding Setup & Rental", category: "mobilization", quantity: 1, priceKsh: 12000, priceUSD: 95, description: "Per week rental" },
+        { id: genId(), name: "Technician Travel & Accommodation (Per Day)", category: "mobilization", quantity: 4, priceKsh: 8000, priceUSD: 60, description: "Per technician per day" },
+        { id: genId(), name: "Safety Gear & PPE Provision", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, description: "Safety compliance kit" },
+        { id: genId(), name: "Site Survey & Preliminary Assessment", category: "mobilization", quantity: 1, priceKsh: 10000, priceUSD: 80, description: "Initial site visit" },
+        { id: genId(), name: "Transport - Pickup Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 100, priceUSD: 0.8, description: "Logistics cost per km" },
+        { id: genId(), name: "Transport - 3 Ton Truck (Per Km)", category: "mobilization", quantity: 100, priceKsh: 150, priceUSD: 1.2, description: "Heavy load transport per km" },
+        { id: genId(), name: "Generator Rental (Per Day)", category: "mobilization", quantity: 2, priceKsh: 8500, priceUSD: 65, description: "Backup power during installation" },
+        { id: genId(), name: "Network Tool Kit Mobilization", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, description: "Specialized networking tools" },
+        { id: genId(), name: "Fiber Splicing Kit Rental", category: "mobilization", quantity: 1, priceKsh: 5000, priceUSD: 40, description: "Fusion splicer daily rate" },
+        { id: genId(), name: "Post-Installation Cleanup", category: "mobilization", quantity: 1, priceKsh: 3000, priceUSD: 25, description: "Site cleaning and waste disposal" },
       ],
       services: [
-        { id: genId(), name: "Solar System Installation (Labor)", category: "services", quantity: 1, priceKsh: 25000, priceUSD: 195, weight: 0, description: "Professional installation labor charge" },
-        { id: genId(), name: "Network Infrastructure Setup (Labor)", category: "services", quantity: 1, priceKsh: 35000, priceUSD: 270, weight: 0, description: "Cabling and configuration labor" },
-        { id: genId(), name: "Solar Power Audit & Consulting", category: "services", quantity: 1, priceKsh: 15000, priceUSD: 115, weight: 0, description: "Energy needs assessment report" },
-        { id: genId(), name: "Annual Maintenance Contract (Solar)", category: "services", quantity: 1, priceKsh: 50000, priceUSD: 385, weight: 0, description: "Preventive maintenance service per year" },
-        { id: genId(), name: "Annual Maintenance Contract (IT/Network)", category: "services", quantity: 1, priceKsh: 120000, priceUSD: 920, weight: 0, description: "Comprehensive IT support per year" },
-        { id: genId(), name: "Fiber Optic Splicing & Termination", category: "services", quantity: 24, priceKsh: 1500, priceUSD: 12, weight: 0, description: "Per core splicing charge" },
-        { id: genId(), name: "CCTV Camera Installation & Config", category: "services", quantity: 8, priceKsh: 3500, priceUSD: 27, weight: 0, description: "Per camera installation" },
-        { id: genId(), name: "Access Control System Setup", category: "services", quantity: 1, priceKsh: 18000, priceUSD: 140, weight: 0, description: "Biometric/Card reader config" },
-        { id: genId(), name: "Structured Cabling (Per Point)", category: "services", quantity: 50, priceKsh: 2500, priceUSD: 20, weight: 0, description: "Cable pulling and termination" },
-        { id: genId(), name: "Server Room Configuration", category: "services", quantity: 1, priceKsh: 45000, priceUSD: 350, weight: 0, description: "Rack mounting and cable management" },
-        { id: genId(), name: "Wi-Fi Site Survey & Heatmapping", category: "services", quantity: 1, priceKsh: 20000, priceUSD: 155, weight: 0, description: "Coverage analysis report" },
-        { id: genId(), name: "Remote System Monitoring (Monthly)", category: "services", quantity: 12, priceKsh: 5000, priceUSD: 40, weight: 0, description: "Victron VRM / Ubiquiti remote support" },
-        { id: genId(), name: "IT Support Retainer (Standard)", category: "services", quantity: 12, priceKsh: 30000, priceUSD: 230, weight: 0, description: "Monthly support fee" },
-        { id: genId(), name: "Emergency Troubleshooting Call-out", category: "services", quantity: 1, priceKsh: 10000, priceUSD: 80, weight: 0, description: "Urgent site visit fee" },
-        { id: genId(), name: "Firmware Update & Optimization", category: "services", quantity: 1, priceKsh: 8000, priceUSD: 60, weight: 0, description: "System software upgrade" },
+        { id: genId(), name: "Solar System Installation (Labor)", category: "services", quantity: 1, priceKsh: 25000, priceUSD: 195, description: "Professional installation labor charge" },
+        { id: genId(), name: "Network Infrastructure Setup (Labor)", category: "services", quantity: 1, priceKsh: 35000, priceUSD: 270, description: "Cabling and configuration labor" },
+        { id: genId(), name: "Solar Power Audit & Consulting", category: "services", quantity: 1, priceKsh: 15000, priceUSD: 115, description: "Energy needs assessment report" },
+        { id: genId(), name: "Annual Maintenance Contract (Solar)", category: "services", quantity: 1, priceKsh: 50000, priceUSD: 385, description: "Preventive maintenance service per year" },
+        { id: genId(), name: "Annual Maintenance Contract (IT/Network)", category: "services", quantity: 1, priceKsh: 120000, priceUSD: 920, description: "Comprehensive IT support per year" },
+        { id: genId(), name: "Fiber Optic Splicing & Termination", category: "services", quantity: 24, priceKsh: 1500, priceUSD: 12, description: "Per core splicing charge" },
+        { id: genId(), name: "CCTV Camera Installation & Config", category: "services", quantity: 8, priceKsh: 3500, priceUSD: 27, description: "Per camera installation" },
+        { id: genId(), name: "Access Control System Setup", category: "services", quantity: 1, priceKsh: 18000, priceUSD: 140, description: "Biometric/Card reader config" },
+        { id: genId(), name: "Structured Cabling (Per Point)", category: "services", quantity: 50, priceKsh: 2500, priceUSD: 20, description: "Cable pulling and termination" },
+        { id: genId(), name: "Server Room Configuration", category: "services", quantity: 1, priceKsh: 45000, priceUSD: 350, description: "Rack mounting and cable management" },
+        { id: genId(), name: "Wi-Fi Site Survey & Heatmapping", category: "services", quantity: 1, priceKsh: 20000, priceUSD: 155, description: "Coverage analysis report" },
+        { id: genId(), name: "Remote System Monitoring (Monthly)", category: "services", quantity: 12, priceKsh: 5000, priceUSD: 40, description: "Victron VRM / Ubiquiti remote support" },
+        { id: genId(), name: "IT Support Retainer (Standard)", category: "services", quantity: 12, priceKsh: 30000, priceUSD: 230, description: "Monthly support fee" },
+        { id: genId(), name: "Emergency Troubleshooting Call-out", category: "services", quantity: 1, priceKsh: 10000, priceUSD: 80, description: "Urgent site visit fee" },
+        { id: genId(), name: "Firmware Update & Optimization", category: "services", quantity: 1, priceKsh: 8000, priceUSD: 60, description: "System software upgrade" },
       ],
     };
     setStock(sample);
@@ -572,20 +543,9 @@ const Stock: React.FC = () => {
         </div>
       </div>
 
-      {/* Freight & Currency controls; totals */}
+      {/* Currency controls & totals */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-4">
         <div className="flex flex-wrap gap-3 items-center">
-          <label className="text-sm flex items-center gap-2 bg-white p-2 rounded shadow-sm">
-            <span className="text-xs text-gray-600">Freight Rate Ksh/kg</span>
-            <input
-              type="number"
-              value={freightRate}
-              onChange={(e) => setFreightRate(Number(e.target.value || 0))}
-              className="w-24 border rounded px-2 py-1 text-sm"
-              title="Freight rate (per kg) saved to localStorage"
-            />
-          </label>
-
           <label className="text-sm flex items-center gap-2 bg-white p-2 rounded shadow-sm">
             <span className="text-xs text-gray-600">Currency Rate (1 USD = Ksh)</span>
             <input
@@ -606,7 +566,6 @@ const Stock: React.FC = () => {
 
         <div className="bg-white p-2 rounded shadow-sm text-sm">
           <div><strong>Total stock value:</strong> Ksh {totalStockValue.toLocaleString()}</div>
-          <div><strong>Total freight (auto):</strong> Ksh {totalFreight.toLocaleString()}</div>
         </div>
       </div>
 
@@ -660,22 +619,12 @@ const Stock: React.FC = () => {
             <input type="number" min={0} value={formPriceUSD} onChange={(e) => onUsdChangeInForm(Number(e.target.value || 0))} className="border px-2 py-1 rounded w-full" />
           </div>
 
-          {/* Weight only for products */}
-          {activeCategory === "products" ? (
-            <div>
-              <label className="block text-sm mb-1">Weight (kg)</label>
-              <input type="number" min={0} value={formWeight ?? ""} onChange={(e) => setFormWeight(e.target.value === "" ? undefined : Number(e.target.value))} className="border px-2 py-1 rounded w-full" />
-            </div>
-          ) : (
-            <div />
-          )}
-
           <div className="flex gap-2">
             <button title={editingId ? "Update item" : "Add item"} onClick={handleAddOrUpdate} className="p-2 rounded bg-brand-600 hover:bg-brand-700 text-white transition-colors">
               <FaPlus />
             </button>
 
-            <button title="Reset form" onClick={() => { setEditingId(null); setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormWeight(undefined); setFormDescription(""); }} className="p-2 rounded bg-gray-200 text-gray-800">
+            <button title="Reset form" onClick={() => { setEditingId(null); setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormDescription(""); }} className="p-2 rounded bg-gray-200 text-gray-800">
               <FaTrash />
             </button>
           </div>
@@ -705,9 +654,7 @@ const Stock: React.FC = () => {
               <th className="p-2 border">Name</th>
               <th className="p-2 border">Category</th>
               <th className="p-2 border">Qty</th>
-              {activeCategory === "products" && <th className="p-2 border">Weight (kg)</th>}
               <th className="p-2 border">Unit Price (Ksh)</th>
-              <th className="p-2 border">Freight (Ksh)</th>
               <th className="p-2 border">Total Value (Ksh)</th>
               <th className="p-2 border text-center">Actions</th>
             </tr>
@@ -715,12 +662,10 @@ const Stock: React.FC = () => {
           <tbody>
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-4 text-center text-gray-500">No entries in {activeCategory}.</td>
+                <td colSpan={7} className="p-4 text-center text-gray-500">No entries in {activeCategory}.</td>
               </tr>
             ) : (
               filteredItems.map((it) => {
-                const freightPerItem = (it.weight || 0) * freightRate;
-                const itemFreight = freightPerItem * (it.quantity || 0);
                 const totalValue = (it.priceKsh || 0) * (it.quantity || 0);
                 return (
                   <tr key={it.id} className="border-b hover:bg-gray-50">
@@ -728,9 +673,7 @@ const Stock: React.FC = () => {
                     <td className="p-2 border">{it.name}</td>
                     <td className="p-2 border">{it.category}</td>
                     <td className="p-2 border">{it.quantity}</td>
-                    {activeCategory === "products" && <td className="p-2 border">{it.weight ?? "-"}</td>}
                     <td className="p-2 border">Ksh {it.priceKsh.toLocaleString()}</td>
-                    <td className="p-2 border">Ksh {itemFreight.toLocaleString()}</td>
                     <td className="p-2 border">Ksh {totalValue.toLocaleString()}</td>
                     <td className="p-2 border text-center">
                       <div className="flex justify-center gap-2">
@@ -757,7 +700,6 @@ const Stock: React.FC = () => {
       <div className="mt-4 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
         <div className="text-sm text-gray-700">
           <div><strong>Total stock value:</strong> Ksh {totalStockValue.toLocaleString()}</div>
-          <div><strong>Total freight (auto):</strong> Ksh {totalFreight.toLocaleString()}</div>
         </div>
 
         <div className="flex gap-2">

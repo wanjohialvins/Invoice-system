@@ -1,16 +1,13 @@
 // src/pages/Dashboard.tsx
 /**
- * Dashboard Component
- * 
- * The central command center for the application.
- * Purpose: Provides a snapshot of business health and quick navigation.
+ * Dashboard Component - The "Command Center"
  * 
  * Features:
- * - Aggregated KPI cards (Revenue, Total Invoices, Stock Value).
- * - Recent Activity tracking.
- * - Quick Action links.
- * 
- * Data Source: LocalStorage keys 'invoices' and 'stockData'.
+ * - "Jarvis-like" interactive UI with glassmorphism and tilt effects.
+ * - Real-time Revenue Chart using Recharts.
+ * - Live Activity Feed simulating system events.
+ * - Smart Alerts for business intelligence.
+ * - Renamed "Invoice" to "Order" terminology.
  */
 import React, { useEffect, useState, useMemo } from "react";
 import {
@@ -23,15 +20,22 @@ import {
   FaCheckCircle,
   FaClock,
   FaEye,
-  FaDownload
+  FaBell,
+  FaBolt,
+  FaBoxOpen
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import logo from "../assets/logo.jpg";
-
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 
 // --- Interfaces ---
-// These define the shape of data expected from storage.
-
 interface InvoiceLine {
   id: string;
   name: string;
@@ -39,7 +43,6 @@ interface InvoiceLine {
   description?: string;
   quantity: number;
   unitPrice: number;
-  productFreight?: number;
   lineTotal?: number;
 }
 
@@ -49,34 +52,21 @@ interface InvoiceData {
   issuedDate?: string;
   dueDate?: string;
   customer?: {
-    id?: string;
     name?: string;
-    phone?: string;
-    email?: string;
-    address?: string;
   };
   clientName?: string;
-  phone?: string;
-  email?: string;
   items?: InvoiceLine[];
-  subtotal?: number;
-  productFreightTotal?: number;
   grandTotal?: number;
   total?: number;
-  freightRate?: number;
-  currencyRate?: number;
-  status: "Paid" | "Pending" | "Overdue";
+  status: "Paid" | "Pending" | "Overdue" | "draft" | "sent" | "cancelled" | "paid" | "pending" | "overdue";
 }
 
 interface StockItem {
   id: string;
   name: string;
-  category: "products" | "mobilization" | "services";
+  category: string;
   quantity: number;
   priceKsh: number;
-  priceUSD?: number;
-  weight?: number;
-  description?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -86,350 +76,256 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // --- Data Loading ---
-  // Fetches data from browser's localStorage to allow persistence between reloads.
-  // This simulates a database connection in a serverless environment.
   useEffect(() => {
     try {
-      // Load invoices
       const storedInvoices = localStorage.getItem("invoices");
-      if (storedInvoices) {
-        const parsedInvoices: InvoiceData[] = JSON.parse(storedInvoices);
-        setInvoices(parsedInvoices);
-      }
+      if (storedInvoices) setInvoices(JSON.parse(storedInvoices));
 
-      // Load stock
       const storedStock = localStorage.getItem("stockData");
-      if (storedStock) {
-        const parsedStock = JSON.parse(storedStock);
-        setStock(parsedStock);
-      }
+      if (storedStock) setStock(JSON.parse(storedStock));
     } catch (err) {
-      console.error("Failed to load data from localStorage", err);
+      console.error("Failed to load data", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // --- Metrics Calculation ---
-  // Uses useMemo to avoid expensive recalculations on every render.
-  // Computes:
-  // 1. Month-over-month revenue growth.
-  // 2. Breakdown of invoices by status.
-  // 3. Top customers by total spend.
-  const metrics = useMemo(() => {
+  // --- Metrics & Intelligence ---
+  const { metrics, chartData, recentActivity, smartAlerts } = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    // Filter invoices by date periods
-    const currentMonthInvoices = invoices.filter(inv => {
-      const invDate = new Date(inv.issuedDate || inv.date || "");
-      return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
-    });
-
-    const lastMonthInvoices = invoices.filter(inv => {
-      const invDate = new Date(inv.issuedDate || inv.date || "");
-      return invDate.getMonth() === lastMonth && invDate.getFullYear() === lastMonthYear;
-    });
-
-    // Revenue aggregations
-    const currentMonthRevenue = currentMonthInvoices.reduce((sum, inv) => sum + (inv.grandTotal || inv.total || 0), 0);
-    const lastMonthRevenue = lastMonthInvoices.reduce((sum, inv) => sum + (inv.grandTotal || inv.total || 0), 0);
+    // 1. Financial Metrics
     const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.grandTotal || inv.total || 0), 0);
-
-    // Status counts
-    const paidInvoices = invoices.filter(inv => inv.status === "Paid");
-    const pendingInvoices = invoices.filter(inv => inv.status === "Pending");
+    const paidInvoices = invoices.filter(inv => inv.status === "Paid" || inv.status === "paid");
+    const pendingInvoices = invoices.filter(inv => ["Pending", "sent", "draft"].includes(inv.status));
     const overdueInvoices = invoices.filter(inv => inv.status === "Overdue");
 
-    const averageInvoiceValue = invoices.length > 0
-      ? totalRevenue / invoices.length
-      : 0;
+    const averageOrderValue = invoices.length > 0 ? totalRevenue / invoices.length : 0;
 
-    // Identify High-Value Customers
-    const customerTotals: Record<string, { name: string; total: number; count: number }> = {};
-    invoices.forEach(inv => {
-      const customerName = inv.customer?.name || inv.clientName || "Unknown";
-      if (!customerTotals[customerName]) {
-        customerTotals[customerName] = { name: customerName, total: 0, count: 0 };
-      }
-      customerTotals[customerName].total += inv.grandTotal || inv.total || 0;
-      customerTotals[customerName].count += 1;
+    // Stock Value
+    const stockValue = Object.values(stock).flat().reduce((sum, item) => sum + (item.priceKsh * item.quantity), 0);
+    const lowStockItems = Object.values(stock).flat().filter(item => item.quantity < 5);
+
+    // 2. Chart Data (Last 6 Months)
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      return {
+        name: d.toLocaleString('default', { month: 'short' }),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        revenue: 0
+      };
     });
 
-    const topCustomers = Object.values(customerTotals)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
+    invoices.forEach(inv => {
+      const d = new Date(inv.issuedDate || inv.date || "");
+      const monthData = last6Months.find(m => m.month === d.getMonth() && m.year === d.getFullYear());
+      if (monthData) {
+        monthData.revenue += (inv.grandTotal || inv.total || 0);
+      }
+    });
 
-    // Calculate total inventory value
-    const stockValue = Object.values(stock).flat().reduce((sum, item) =>
-      sum + (item.priceKsh * item.quantity), 0
-    );
+    // 3. Recent Activity (Simulated from Invoices)
+    const activity = invoices
+      .sort((a, b) => new Date(b.issuedDate || "").getTime() - new Date(a.issuedDate || "").getTime())
+      .slice(0, 5)
+      .map(inv => ({
+        id: inv.id,
+        type: 'order',
+        message: `Order ${inv.id} created for ${inv.customer?.name || "Client"}`,
+        time: inv.issuedDate || "Just now",
+        amount: inv.grandTotal || 0
+      }));
+
+    // 4. Smart Alerts
+    const alerts = [];
+    if (overdueInvoices.length > 0) alerts.push({ type: 'danger', message: `${overdueInvoices.length} orders are overdue` });
+    if (lowStockItems.length > 0) alerts.push({ type: 'warning', message: `${lowStockItems.length} items are running low on stock` });
+    if (pendingInvoices.length > 5) alerts.push({ type: 'info', message: `${pendingInvoices.length} orders pending processing` });
 
     return {
-      totalInvoices: invoices.length,
-      totalRevenue,
-      currentMonthRevenue,
-      lastMonthRevenue,
-      revenueChange: lastMonthRevenue > 0
-        ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1)
-        : "0",
-      averageInvoiceValue,
-      paidInvoices: paidInvoices.length,
-      pendingInvoices: pendingInvoices.length,
-      overdueInvoices: overdueInvoices.length,
-      topCustomers,
-      stockValue,
-      recentInvoices: invoices.slice(0, 5) // Show only the 5 most recent
+      metrics: { totalRevenue, totalInvoices: invoices.length, averageOrderValue, stockValue, paidCount: paidInvoices.length },
+      chartData: last6Months,
+      recentActivity: activity,
+      smartAlerts: alerts
     };
   }, [invoices, stock]);
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
-          <p className="mt-2 text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-brand-600 font-medium animate-pulse">Initializing System...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+    <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-up delay-100">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-gray-500 mt-1">Welcome back, here's what's happening today.</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Command Center</h1>
+            <p className="text-slate-500 mt-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              System Operational • {new Date().toLocaleDateString()}
+            </p>
           </div>
-          {/* Main Call to Action: Create Invoice */}
           <Link
             to="/new-invoice"
-            className="mt-4 md:mt-0 px-5 py-2.5 bg-[#0099ff] text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-medium"
+            className="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-500 text-white rounded-xl shadow-lg shadow-brand-500/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-medium btn-liquid overflow-hidden group"
           >
-            <FaPlus /> Create Invoice
+            <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
+            <span className="relative z-10">New Order</span>
           </Link>
         </div>
 
-        {/* --- KPI Cards Section --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">Ksh {metrics.totalRevenue.toLocaleString()}</p>
-                <p className={`text-sm ${Number(metrics.revenueChange) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {Number(metrics.revenueChange) >= 0 ? '+' : ''}{metrics.revenueChange}% from last month
-                </p>
-              </div>
-              <div className="p-3 bg-brand-50 rounded-full">
-                <FaMoneyBillWave className="text-brand-600 text-xl" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Invoices</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalInvoices}</p>
-                <p className="text-sm text-gray-500">All time</p>
-              </div>
-              <div className="p-3 bg-indigo-100 rounded-full">
-                <FaFileInvoice className="text-indigo-600 text-xl" />
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up delay-200">
+          {[
+            { label: "Total Revenue", value: `Ksh ${metrics.totalRevenue.toLocaleString()}`, icon: FaMoneyBillWave, color: "text-brand-600", bg: "bg-brand-50" },
+            { label: "Total Orders", value: metrics.totalInvoices, icon: FaFileInvoice, color: "text-indigo-600", bg: "bg-indigo-50" },
+            { label: "Avg. Order Value", value: `Ksh ${Math.round(metrics.averageOrderValue).toLocaleString()}`, icon: FaChartLine, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Stock Value", value: `Ksh ${metrics.stockValue.toLocaleString()}`, icon: FaUsers, color: "text-purple-600", bg: "bg-purple-50" }
+          ].map((card, i) => (
+            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/20 to-transparent -mr-10 -mt-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 mb-1">{card.label}</p>
+                  <h3 className="text-2xl font-bold text-slate-900 group-hover:text-brand-600 transition-colors">{card.value}</h3>
+                </div>
+                <div className={`p-3 rounded-xl ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-300`}>
+                  <card.icon size={20} />
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Invoice</p>
-                <p className="text-2xl font-bold text-gray-900">Ksh {Math.round(metrics.averageInvoiceValue).toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Per invoice</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <FaChartLine className="text-green-600 text-xl" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Stock Value</p>
-                <p className="text-2xl font-bold text-gray-900">Ksh {metrics.stockValue.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Current inventory</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <FaUsers className="text-purple-600 text-xl" />
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* --- Middle Section: Status, Customers, Actions --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Invoice Status Distribution */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoice Status</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FaCheckCircle className="text-green-500 mr-2" />
-                  <span className="text-gray-700">Paid</span>
-                </div>
-                <span className="font-semibold">{metrics.paidInvoices}</span>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Left Column: Revenue Chart */}
+          <div className="lg:col-span-2 space-y-8 animate-slide-up delay-300">
+
+            {/* Revenue Chart */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <FaChartLine className="text-brand-500" /> Revenue Trends
+                </h2>
+                <select className="text-sm bg-slate-50 border-none rounded-lg text-slate-600 focus:ring-0 cursor-pointer hover:bg-slate-100 transition-colors px-3 py-1">
+                  <option>Last 6 Months</option>
+                </select>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FaClock className="text-yellow-500 mr-2" />
-                  <span className="text-gray-700">Pending</span>
-                </div>
-                <span className="font-semibold">{metrics.pendingInvoices}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FaExclamationTriangle className="text-red-500 mr-2" />
-                  <span className="text-gray-700">Overdue</span>
-                </div>
-                <span className="font-semibold">{metrics.overdueInvoices}</span>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `Ksh${value / 1000}k`} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          </div>
 
-          {/* Top Customers List */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Customers</h2>
-            {metrics.topCustomers.length === 0 ? (
-              <p className="text-gray-500">No customers yet</p>
-            ) : (
-              <div className="space-y-3">
-                {metrics.topCustomers.map((customer, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.name}</p>
-                      <p className="text-sm text-gray-500">{customer.count} invoice{customer.count !== 1 ? 's' : ''}</p>
+            {/* Recent Activity Feed */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card">
+              <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <FaBolt className="text-amber-500" /> Live System Activity
+              </h2>
+              <div className="space-y-6">
+                {recentActivity.map((activity, idx) => (
+                  <div key={idx} className="flex gap-4 group">
+                    <div className="flex-shrink-0 relative">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-brand-50 transition-colors ring-2 ring-white ring-offset-2">
+                        <FaFileInvoice className="text-slate-500 group-hover:text-brand-600 transition-colors" size={14} />
+                      </div>
+                      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-0.5 h-full bg-slate-100 -z-10 last:hidden"></div>
                     </div>
-                    <p className="font-semibold">Ksh {customer.total.toLocaleString()}</p>
+                    <div className="flex-1 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                      <p className="text-sm font-medium text-slate-800">{activity.message}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <FaClock size={10} /> {activity.time}
+                        </span>
+                        <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+                          Ksh {activity.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Quick Actions Panel */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="space-y-3">
-              <Link
-                to="/new-invoice"
-                className="block w-full text-center px-4 py-2 bg-brand-600 text-white rounded hover:bg-brand-700"
-              >
-                Create New Invoice
-              </Link>
-              <Link
-                to="/invoices"
-                className="block w-full text-center px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-              >
-                View All Invoices
-              </Link>
-              <Link
-                to="/stock"
-                className="block w-full text-center px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-              >
-                Manage Stock
-              </Link>
             </div>
           </div>
-        </div>
 
-        {/* --- Recent Invoices Table --- */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Invoices</h2>
-            <Link to="/invoices" className="text-brand-600 hover:text-brand-800 text-sm font-semibold">
-              View All
-            </Link>
+          {/* Right Column: Alerts & Quick Actions */}
+          <div className="space-y-6 animate-slide-up delay-400">
+
+            {/* Smart Alerts */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <FaBell className="text-red-500" /> Intelligence
+              </h2>
+              <div className="space-y-3">
+                {smartAlerts.length === 0 ? (
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-100 text-green-700 text-sm flex items-center gap-3">
+                    <FaCheckCircle /> All systems nominal.
+                  </div>
+                ) : (
+                  smartAlerts.map((alert, idx) => (
+                    <div key={idx} className={`p-4 rounded-xl text-sm border flex items-start gap-3 transition-transform hover:scale-105 ${alert.type === 'danger' ? 'bg-red-50 border-red-100 text-red-800' :
+                      alert.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-800' :
+                        'bg-blue-50 border-blue-100 text-blue-800'
+                      }`}>
+                      <FaExclamationTriangle className="mt-0.5 flex-shrink-0" />
+                      <span>{alert.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg jarvis-card">
+              <h2 className="text-lg font-bold mb-4">Quick Command</h2>
+              <div className="space-y-3">
+                <Link to="/new-invoice" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                  <span className="text-sm font-medium">Create New Order</span>
+                  <FaPlus className="text-slate-400 group-hover:text-white transition-colors" />
+                </Link>
+                <Link to="/stock" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                  <span className="text-sm font-medium">Manage Inventory</span>
+                  <FaBoxOpen className="text-slate-400 group-hover:text-white transition-colors" />
+                </Link>
+                <Link to="/invoices" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                  <span className="text-sm font-medium">View All Orders</span>
+                  <FaEye className="text-slate-400 group-hover:text-white transition-colors" />
+                </Link>
+              </div>
+            </div>
+
           </div>
-          {metrics.recentInvoices.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No invoices yet</p>
-              <Link
-                to="/new-invoice"
-                className="px-4 py-2 bg-brand-600 text-white rounded hover:bg-brand-700"
-              >
-                Create Your First Invoice
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Invoice ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {metrics.recentInvoices.map((invoice) => {
-                    const customerName = invoice.customer?.name || invoice.clientName || "N/A";
-                    const invoiceDate = invoice.issuedDate || invoice.date || "N/A";
-                    const total = invoice.grandTotal || invoice.total || 0;
-
-                    return (
-                      <tr key={invoice.id}>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {invoice.id}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {customerName}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {invoiceDate !== "N/A" ? new Date(invoiceDate).toLocaleDateString() : "N/A"}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          Ksh {total.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${invoice.status === 'Paid' ? 'bg-green-100 text-green-800' :
-                            invoice.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                            {invoice.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/invoices/${invoice.id}`} className="text-brand-600 hover:text-brand-900 mr-3">
-                            <FaEye />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -21,11 +21,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       `}
     >
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-brand-500 rounded flex items-center justify-center mr-3 shadow-lg shadow-brand-500/30">
+        <div className="flex items-center group cursor-pointer">
+          <div className="w-8 h-8 bg-brand-500 rounded flex items-center justify-center mr-3 shadow-lg shadow-brand-500/30 group-hover:animate-pulse transition-all">
             <span className="font-bold text-white text-lg">K</span>
           </div>
-          <span className="text-xl font-bold tracking-wide">KONSUT</span>
+          <span className="text-xl font-bold tracking-wide group-hover:text-brand-400 transition-colors">KONSUT</span>
         </div>
 
         {/* Close button - only visible on mobile */}
@@ -48,13 +48,19 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             end
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isActive
                 ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
                 : "text-slate-400 hover:bg-slate-800 hover:text-white"
               }`
             }
           >
-            <FiHome className="icon-hover-bounce icon-fade-in icon-delay-1" /> Dashboard
+            {({ isActive }) => (
+              <>
+                {isActive && <div className="absolute inset-0 bg-brand-500 opacity-20 animate-pulse"></div>}
+                <FiHome className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span className="relative z-10">Dashboard</span>
+              </>
+            )}
           </NavLink>
           <NavLink
             to="/new-invoice"
@@ -66,7 +72,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiFileText className="icon-hover-scale icon-fade-in icon-delay-2" /> New Invoice
+            <FiFileText className="group-hover:rotate-12 transition-transform duration-300" /> New Order
           </NavLink>
           <NavLink
             to="/invoices"
@@ -78,7 +84,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiFileText className="icon-hover-pulse icon-fade-in icon-delay-3" /> All Invoices
+            <FiFileText className="group-hover:translate-x-1 transition-transform duration-300" /> All Orders
           </NavLink>
           <NavLink
             to="/clients"
@@ -90,7 +96,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiUsers className="icon-hover-bounce icon-fade-in icon-delay-4" /> Clients
+            <FiUsers className="group-hover:scale-110 transition-transform duration-300" /> Clients
           </NavLink>
           <NavLink
             to="/stock"
@@ -102,7 +108,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiPackage className="icon-hover-scale icon-fade-in icon-delay-5" /> Stock
+            <FiPackage className="group-hover:rotate-12 transition-transform duration-300" /> Stock
           </NavLink>
           <NavLink
             to="/analytics"
@@ -114,7 +120,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiBarChart2 className="icon-hover-pulse icon-fade-in icon-delay-1" /> Analytics
+            <FiBarChart2 className="group-hover:scale-110 transition-transform duration-300" /> Analytics
           </NavLink>
         </nav>
 
@@ -130,14 +136,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               }`
             }
           >
-            <FiSettings className="icon-hover-rotate icon-fade-in icon-delay-2" /> Settings
+            <FiSettings className="group-hover:rotate-90 transition-transform duration-500" /> Settings
           </NavLink>
         </nav>
       </div>
 
       <div className="mt-auto p-4 border-t border-slate-800 bg-slate-950/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-400 to-brand-600"></div>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-400 to-brand-600 animate-pulse"></div>
           <div>
             <div className="text-sm font-medium text-white">Eragon Devs</div>
             <div className="text-xs text-slate-500">Admin</div>

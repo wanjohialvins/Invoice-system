@@ -7,8 +7,12 @@ import Clients from "./pages/Clients";
 import Settings from "./pages/Settings";
 import Stock from "./pages/Stock";
 import Analytics from "./pages/Analytics";
+import { useTheme } from "./hooks/useTheme";
 
 const App = () => {
+  // Initialize theme on app load
+  useTheme();
+
   return (
     <Router>
       <Routes>
@@ -27,4 +31,5 @@ const App = () => {
 };
 
 export default App;
+
 

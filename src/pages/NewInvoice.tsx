@@ -6,12 +6,15 @@
  * 
  * Key Functionalities:
  * - Inventory Selection: Browse and add items from 'Products', 'Mobilization', and 'Services'.
- * - Dynamic Calculations: Auto-compute Freight, Totals, and Currency Conversions (USD/Ksh).
+ * - Dynamic Calculations: Auto-compute Totals and Currency Conversions (USD/Ksh).
  * - Draft Persistence: Uses localStorage to auto-save work in progress (`DRAFT_KEY`).
  * - PDF Generation: Integration with `jspdf` for client-ready documents.
  * - Stock Seeding: Dev tool to populate sample data for testing.
  */
+import { DocumentEngine } from "../utils/DocumentEngine";
+import { SequenceManager } from "../utils/SequenceManager";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import {
@@ -25,35 +28,16 @@ import {
   FaEye,
   FaEyeSlash,
   FaSeedling,
-  FaTruck,
-  FaToolbox,
   FaSpinner,
 } from "react-icons/fa";
+import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 
 /* ============================
    Types
    ============================ */
+import type { Invoice, InvoiceType, InvoiceItem as InvoiceLine, Product } from "../types/types";
+
 type Category = "products" | "mobilization" | "services";
-
-interface Product {
-  id: string;
-  name: string;
-  weight?: number; // kg
-  priceKsh?: number;
-  priceUSD?: number;
-  description?: string;
-}
-
-interface InvoiceLine {
-  id: string; // product id
-  name: string;
-  category: Category;
-  description?: string;
-  quantity: number;
-  unitPrice: number; // Ksh
-  productFreight: number; // computed freight for the line (Ksh)
-  lineTotal: number; // unitPrice * qty
-}
 
 /* ============================
    Constants
@@ -61,7 +45,6 @@ interface InvoiceLine {
 const STOCK_KEY = "stockData";
 const DRAFT_KEY = "konsut_newinvoice_draft_vFinal";
 const INVOICES_KEY = "invoices";
-const FREIGHT_RATE_KEY = "freightRate";
 const USD_TO_KSH_KEY = "usdToKshRate";
 const LAST_SAVED_QUOTE_KEY = "konsut_last_saved_quote";
 
@@ -74,32 +57,6 @@ const COMPANY = {
   pin: "P052435869T",
 
 };
-
-/* ============================
-   Utility: Load image -> dataURL (for embedding logo in PDF)
-   ============================ */
-const loadImageAsDataURL = (src: string): Promise<string | null> =>
-  new Promise((resolve) => {
-    if (!src) return resolve(null);
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
-      try {
-        const c = document.createElement("canvas");
-        c.width = img.width;
-        c.height = img.height;
-        const ctx = c.getContext("2d");
-        if (!ctx) return resolve(null);
-        ctx.drawImage(img, 0, 0);
-        resolve(c.toDataURL("image/png"));
-      } catch (e) {
-        console.warn("image -> dataURL failed", e);
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
 
 /* ============================
    Toast helper (simple)
@@ -119,9 +76,6 @@ const useToasts = () => {
 /* ============================
    Main Component
    ============================ */
-/* ============================
-   Main Component
-   ============================ */
 const NewInvoice: React.FC = () => {
   // --- Inventory State ---
   // Loaded from localStorage to populate the selection lists.
@@ -129,9 +83,15 @@ const NewInvoice: React.FC = () => {
   const [mobilization, setMobilization] = useState<Product[]>([]);
   const [services, setServices] = useState<Product[]>([]);
 
-  // --- UI State ---
-  // activeCategory controls which tab (Products/Services/Mobilization) is selected.
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("id");
+  const isEditing = !!editId;
+
+  // -- State --
   const [activeCategory, setActiveCategory] = useState<Category>("products");
+  const [activeDocumentType, setActiveDocumentType] = useState<InvoiceType>("quotation"); // NEW: Document Type
+
   const [search, setSearch] = useState<Record<Category, string>>({
     products: "",
     mobilization: "",
@@ -139,28 +99,27 @@ const NewInvoice: React.FC = () => {
   });
 
   // Customer (auto-generate Customer ID)
-  const [customerId] = useState<string>(() => `CUST-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [customerId, setCustomerId] = useState<string>(() => `CUST-${Math.floor(100000 + Math.random() * 900000)}`);
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [customerAddress, setCustomerAddress] = useState<string>("");
+  const [customerKraPin, setCustomerKraPin] = useState<string>(""); // NEW: KRA PIN
   const [displayCurrency, setDisplayCurrency] = useState<"Ksh" | "USD">("Ksh");
 
   // Due date input: user picks a date; daysRemaining auto-calculated
   const todayISO = new Date().toISOString().slice(0, 10);
-  const [issuedDate] = useState<string>(todayISO);
+  const [issuedDate, setIssuedDate] = useState<string>(todayISO);
   const [dueDate, setDueDate] = useState<string>("");
 
   // Validation errors
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+
+
   /* ----------------------------
      Rate & toggles
      ---------------------------- */
-  const [freightRate, setFreightRate] = useState<number>(() => {
-    const s = localStorage.getItem(FREIGHT_RATE_KEY);
-    return s ? Number(s) : 50;
-  });
   const [usdToKshRate, setUsdToKshRate] = useState<number>(() => {
     const s = localStorage.getItem(USD_TO_KSH_KEY);
     return s ? Number(s) : 130;
@@ -169,7 +128,13 @@ const NewInvoice: React.FC = () => {
   // UI toggles
   const [showDescriptions, setShowDescriptions] = useState<boolean>(true);
   const [includeDescriptionsInPDF, setIncludeDescriptionsInPDF] = useState<boolean>(true);
-  const [showConversionInput, setShowConversionInput] = useState<boolean>(false);
+
+  // Custom PDF Sections
+  const [includeClientResponsibilities, setIncludeClientResponsibilities] = useState<boolean>(false);
+  const [clientResponsibilities, setClientResponsibilities] = useState<string>("1. Provide clear access to the site.\n2. Ensure power and water availability during installation.\n3. Approve final design before work commences.\n4. Secure necessary permits from local authorities.");
+
+  const [includeTermsAndConditions, setIncludeTermsAndConditions] = useState<boolean>(false);
+  const [termsAndConditions, setTermsAndConditions] = useState<string>("1. 60% deposit required to commence work.\n2. Balance due upon completion.\n3. Goods remain property of KONSUT LTD until paid in full.\n4. Warranty covers manufacturing defects only.");
 
   /* ----------------------------
      Invoice lines + selection (per-category)
@@ -195,17 +160,15 @@ const NewInvoice: React.FC = () => {
      Load stock & draft on mount
      ---------------------------- */
   useEffect(() => {
-    // Load freight & rate if saved
-    const fr = localStorage.getItem(FREIGHT_RATE_KEY);
-    if (fr) setFreightRate(Number(fr));
+    // 1. Load global settings
     const ur = localStorage.getItem(USD_TO_KSH_KEY);
     if (ur) setUsdToKshRate(Number(ur));
 
-    // Load stock: try unified STOCK_KEY first
-    const raw = localStorage.getItem(STOCK_KEY);
-    if (raw) {
+    // 2. Load stock data
+    const rawStock = localStorage.getItem(STOCK_KEY);
+    if (rawStock) {
       try {
-        const parsed = JSON.parse(raw) as Record<Category, Product[]>;
+        const parsed = JSON.parse(rawStock) as Record<Category, Product[]>;
         setProducts(parsed.products ?? []);
         setMobilization(parsed.mobilization ?? []);
         setServices(parsed.services ?? []);
@@ -214,27 +177,80 @@ const NewInvoice: React.FC = () => {
       }
     }
 
-    // Load draft
-    const draftRaw = localStorage.getItem(DRAFT_KEY);
-    if (draftRaw) {
-      try {
-        const d = JSON.parse(draftRaw);
-        setCustomerName(d.customerName ?? "");
-        setCustomerPhone(d.customerPhone ?? "");
-        setCustomerEmail(d.customerEmail ?? "");
-        setCustomerAddress(d.customerAddress ?? "");
-        setDueDate(d.dueDate ?? "");
-        setLines(d.lines ?? []);
-        setShowDescriptions(d.showDescriptions ?? true);
-        setIncludeDescriptionsInPDF(d.includeDescriptionsInPDF ?? true);
-        setSelectedId(d.selectedId ?? { products: "", mobilization: "", services: "" });
-        setSelectedQty(d.selectedQty ?? { products: 1, mobilization: 1, services: 1 });
-      } catch (e) {
-        console.warn("Failed parsing draft", e);
+    // 3. Load Document Data (Edit Mode OR Draft)
+    if (isEditing && editId) {
+      // --- EDIT MODE ---
+      const savedInvoicesString = localStorage.getItem(INVOICES_KEY);
+      const savedInvoices: Invoice[] = savedInvoicesString ? JSON.parse(savedInvoicesString) : [];
+      const invoiceToEdit = savedInvoices.find(inv => inv.id === editId);
+
+      if (invoiceToEdit) {
+        pushToast(`Loaded ${invoiceToEdit.type} ${invoiceToEdit.id}`, "info");
+
+        // Populate State
+        setActiveDocumentType(invoiceToEdit.type);
+        setCustomerId(invoiceToEdit.customer?.id || "");
+        setCustomerName(invoiceToEdit.customer?.name || "");
+        setCustomerPhone(invoiceToEdit.customer?.phone || "");
+        setCustomerEmail(invoiceToEdit.customer?.email || "");
+        setCustomerAddress(invoiceToEdit.customer?.address || "");
+        setCustomerKraPin(invoiceToEdit.customer?.kraPin || "");
+        setIssuedDate(invoiceToEdit.issuedDate);
+        setDueDate(invoiceToEdit.dueDate || invoiceToEdit.quotationValidUntil || "");
+        setLines(invoiceToEdit.items || []);
+
+        if (invoiceToEdit.currencyRate) setUsdToKshRate(invoiceToEdit.currencyRate);
+
+        // Load custom fields
+        if (invoiceToEdit.clientResponsibilities) {
+          setIncludeClientResponsibilities(true);
+          setClientResponsibilities(invoiceToEdit.clientResponsibilities);
+        } else {
+          setIncludeClientResponsibilities(false);
+        }
+
+        if (invoiceToEdit.termsAndConditions) {
+          setIncludeTermsAndConditions(true);
+          setTermsAndConditions(invoiceToEdit.termsAndConditions);
+        } else {
+          setIncludeTermsAndConditions(false);
+        }
+      } else {
+        pushToast("Invoice to edit not found", "error");
+      }
+    } else {
+      // --- DRAFT MODE ---
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        try {
+          const d = JSON.parse(savedDraft);
+          if (d.customerId) setCustomerId(d.customerId);
+          if (d.customerName) setCustomerName(d.customerName);
+          if (d.customerPhone) setCustomerPhone(d.customerPhone);
+          if (d.customerEmail) setCustomerEmail(d.customerEmail);
+          if (d.customerAddress) setCustomerAddress(d.customerAddress);
+          if (d.customerKraPin) setCustomerKraPin(d.customerKraPin);
+          if (d.issuedDate) setIssuedDate(d.issuedDate);
+          if (d.dueDate) setDueDate(d.dueDate);
+          if (d.lines) setLines(d.lines);
+          if (d.usdToKshRate) setUsdToKshRate(d.usdToKshRate);
+
+          if (d.selectedId) setSelectedId(d.selectedId);
+          if (d.selectedQty) setSelectedQty(d.selectedQty);
+
+          if (d.activeDocumentType) setActiveDocumentType(d.activeDocumentType);
+
+          if (d.includeClientResponsibilities !== undefined) setIncludeClientResponsibilities(d.includeClientResponsibilities);
+          if (d.clientResponsibilities) setClientResponsibilities(d.clientResponsibilities);
+
+          if (d.includeTermsAndConditions !== undefined) setIncludeTermsAndConditions(d.includeTermsAndConditions);
+          if (d.termsAndConditions) setTermsAndConditions(d.termsAndConditions);
+        } catch (e) {
+          console.warn("Failed parsing draft", e);
+        }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editId, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ----------------------------
      Comprehensive save function
@@ -246,29 +262,31 @@ const NewInvoice: React.FC = () => {
       customerPhone,
       customerEmail,
       customerAddress,
+      customerKraPin,
       issuedDate,
       dueDate,
       lines,
       showDescriptions,
       includeDescriptionsInPDF,
-      freightRate,
       usdToKshRate,
-      selectedId,
-      selectedQty,
+      activeDocumentType,
+      includeClientResponsibilities,
+      clientResponsibilities,
+      includeTermsAndConditions,
+      termsAndConditions,
       ...additionalData,
       lastSaved: new Date().toISOString()
     };
 
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave));
-      localStorage.setItem(FREIGHT_RATE_KEY, String(freightRate));
       localStorage.setItem(USD_TO_KSH_KEY, String(usdToKshRate));
       return true;
     } catch (e) {
       console.error("Failed to save data:", e);
       return false;
     }
-  }, [customerId, customerName, customerPhone, customerEmail, customerAddress, issuedDate, dueDate, lines, showDescriptions, includeDescriptionsInPDF, freightRate, usdToKshRate, selectedId, selectedQty]);
+  }, [customerId, customerName, customerPhone, customerEmail, customerAddress, customerKraPin, issuedDate, dueDate, lines, showDescriptions, includeDescriptionsInPDF, usdToKshRate, selectedId, selectedQty, activeDocumentType, includeClientResponsibilities, clientResponsibilities, includeTermsAndConditions, termsAndConditions]);
 
   /* ----------------------------
      Auto-save on data changes
@@ -283,49 +301,21 @@ const NewInvoice: React.FC = () => {
   const validateCustomerInfo = () => {
     const errors: Record<string, string> = {};
 
+    // Name is always required
     if (!customerName.trim()) {
       errors.customerName = "Customer name is required";
     }
 
-    if (!customerPhone.trim()) {
-      errors.customerPhone = "Phone number is required";
-    } else if (!/^\+?\d{7,15}$/.test(customerPhone)) {
-      errors.customerPhone = "Please enter a valid phone number";
+    // KRA PIN required only for Proforma and Invoice
+    if ((activeDocumentType === 'proforma' || activeDocumentType === 'invoice') && !customerKraPin.trim()) {
+      errors.customerKraPin = "KRA PIN is required for Proforma and Invoice";
     }
 
-    if (!customerEmail.trim()) {
-      errors.customerEmail = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-      errors.customerEmail = "Please enter a valid email address";
-    }
-
-    if (!dueDate) {
-      errors.dueDate = "Due date is required";
-    }
+    // Phone, Email, and Due Date are optional for all document types
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
-  /* ----------------------------
-     Derived totals
-     ---------------------------- */
-  const subtotal = useMemo(() => lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0), [lines]);
-  const productFreightTotal = useMemo(() => lines.reduce((s, l) => s + (l.productFreight || 0), 0), [lines]);
-  const grandTotal = subtotal + productFreightTotal;
-
-  // Currency conversion for display
-  const displaySubtotal = useMemo(() => {
-    return displayCurrency === "USD" ? (subtotal / usdToKshRate).toFixed(2) : subtotal.toFixed(2);
-  }, [subtotal, displayCurrency, usdToKshRate]);
-
-  const displayFreightTotal = useMemo(() => {
-    return displayCurrency === "USD" ? (productFreightTotal / usdToKshRate).toFixed(2) : productFreightTotal.toFixed(2);
-  }, [productFreightTotal, displayCurrency, usdToKshRate]);
-
-  const displayGrandTotal = useMemo(() => {
-    return displayCurrency === "USD" ? (grandTotal / usdToKshRate).toFixed(2) : grandTotal.toFixed(2);
-  }, [grandTotal, displayCurrency, usdToKshRate]);
 
   /* ----------------------------
      Helpers: category array + filtered
@@ -358,14 +348,12 @@ const NewInvoice: React.FC = () => {
     }
 
     const unitKsh = prod.priceKsh != null ? Number(prod.priceKsh) : prod.priceUSD != null ? Number(prod.priceUSD) * usdToKshRate : 0;
-    const productFreight = cat === "products" && prod.weight && freightRate ? prod.weight * freightRate * qty : 0;
 
     const existingIndex = lines.findIndex((l) => l.id === id && l.category === cat);
     if (existingIndex >= 0) {
       const updated = [...lines];
       updated[existingIndex].quantity += qty;
       updated[existingIndex].lineTotal = updated[existingIndex].unitPrice * updated[existingIndex].quantity;
-      updated[existingIndex].productFreight = (updated[existingIndex].productFreight || 0) + productFreight;
       setLines(updated);
     } else {
       const newLine: InvoiceLine = {
@@ -375,7 +363,6 @@ const NewInvoice: React.FC = () => {
         description: showDescriptions ? prod.description ?? "" : undefined,
         quantity: qty,
         unitPrice: Number(unitKsh),
-        productFreight,
         lineTotal: Number(unitKsh) * qty,
       };
       setLines((s) => [...s, newLine]);
@@ -394,10 +381,6 @@ const NewInvoice: React.FC = () => {
     const updated = [...lines];
     updated[index].quantity += 1;
     updated[index].lineTotal = updated[index].unitPrice * updated[index].quantity;
-    if (updated[index].category === "products") {
-      const prod = products.find((p) => p.id === updated[index].id);
-      updated[index].productFreight = prod && prod.weight && freightRate ? prod.weight * freightRate * updated[index].quantity : 0;
-    }
     setLines(updated);
   };
 
@@ -405,10 +388,6 @@ const NewInvoice: React.FC = () => {
     const updated = [...lines];
     updated[index].quantity = Math.max(1, updated[index].quantity - 1);
     updated[index].lineTotal = updated[index].unitPrice * updated[index].quantity;
-    if (updated[index].category === "products") {
-      const prod = products.find((p) => p.id === updated[index].id);
-      updated[index].productFreight = prod && prod.weight && freightRate ? prod.weight * freightRate * updated[index].quantity : 0;
-    }
     setLines(updated);
   };
 
@@ -430,6 +409,7 @@ const NewInvoice: React.FC = () => {
       setCustomerPhone("");
       setCustomerEmail("");
       setCustomerAddress("");
+      setCustomerKraPin("");
       setDueDate("");
       setLines([]);
       setShowDescriptions(true);
@@ -444,9 +424,9 @@ const NewInvoice: React.FC = () => {
   };
 
   /* ----------------------------
-     Save Quotation to invoices array (finalize)
+     Save Document (Finalize)
      ---------------------------- */
-  const saveQuotation = () => {
+  const saveDocument = () => {
     if (!validateCustomerInfo()) {
       pushToast("Please fix validation errors", "error");
       return;
@@ -458,43 +438,51 @@ const NewInvoice: React.FC = () => {
     }
 
     try {
-      const invoiceObj = {
-        id: `QUO-${Math.floor(Math.random() * 1000000)}`,
+      const prefix = activeDocumentType === 'quotation' ? 'QUO' : activeDocumentType === 'proforma' ? 'PRO' : 'INV';
+      const docId = `${prefix}-${Math.floor(Math.random() * 1000000)}`;
+
+      const invoiceObj: Invoice = {
+        id: docId,
+        type: activeDocumentType,
         date: new Date().toISOString(),
         issuedDate,
-        dueDate,
-        customer: { id: customerId, name: customerName, phone: customerPhone, email: customerEmail, address: customerAddress },
+        dueDate: dueDate || "",
+        quotationValidUntil: activeDocumentType === 'quotation' ? dueDate : undefined,
+        customer: { id: customerId, name: customerName, phone: customerPhone, email: customerEmail, address: customerAddress, kraPin: customerKraPin },
         items: lines,
         subtotal,
-        productFreightTotal,
         grandTotal,
-        freightRate,
+        tax: 0,
         currencyRate: usdToKshRate,
-        status: "Pending",
-        pdfGenerated: false, // Track if PDF was generated
-        lastModified: new Date().toISOString()
+        status: "draft", // Force draft initially
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        clientResponsibilities: includeClientResponsibilities ? clientResponsibilities : undefined,
+        termsAndConditions: includeTermsAndConditions ? termsAndConditions : undefined,
       };
 
       // Save to invoices array
       const raw = localStorage.getItem(INVOICES_KEY);
       const arr = raw ? JSON.parse(raw) : [];
+
       arr.unshift(invoiceObj);
       localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
 
-      // Save as last saved quote for easy access
-      localStorage.setItem(LAST_SAVED_QUOTE_KEY, JSON.stringify(invoiceObj));
+      if (activeDocumentType === 'quotation') {
+        localStorage.setItem(LAST_SAVED_QUOTE_KEY, JSON.stringify(invoiceObj));
+      }
 
       // Also save current state as draft
       saveAllData({
-        action: "save_quotation",
-        quoteId: invoiceObj.id,
+        action: "save_document",
+        docId: invoiceObj.id,
         timestamp: new Date().toISOString()
       });
 
-      pushToast(`Quotation ${invoiceObj.id} saved successfully`, "success");
+      pushToast(`${activeDocumentType.charAt(0).toUpperCase() + activeDocumentType.slice(1)} ${docId} saved successfully`, "success");
     } catch (e) {
-      console.error("Failed to save quotation:", e);
-      pushToast("Failed to save quotation", "error");
+      console.error("Failed to save document:", e);
+      pushToast("Failed to save document", "error");
     }
   };
 
@@ -507,14 +495,6 @@ const NewInvoice: React.FC = () => {
       return;
     }
 
-    /* ----------------------------
-       PDF Generation
-       ----------------------------
-       Compiles the current form state into a standardized object expected by the PDF generator.
-       - Validates input first.
-       - Generates a PDF blob/download.
-       - Saves a record of the generated PDF to history.
-    */
     if (lines.length === 0) {
       pushToast("Add at least one item", "error");
       return;
@@ -532,24 +512,28 @@ const NewInvoice: React.FC = () => {
           name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          address: customerAddress
+          address: customerAddress,
+          kraPin: customerKraPin
         },
         items: lines,
         subtotal,
-        tax: 0, // Quotations don't have tax
-        productFreightTotal,
+        tax: 0,
         grandTotal,
-        freightRate,
         currencyRate: usdToKshRate,
-        status: "Pending"
+        status: "draft",
+        clientResponsibilities: includeClientResponsibilities ? clientResponsibilities : undefined,
+        termsAndConditions: includeTermsAndConditions ? termsAndConditions : undefined,
       };
 
-      // Use the professional PDF generator
-      await generateInvoicePDF(invoiceData as any, "QUOTATION");
+      // Use the professional PDF generator with correct document type
+      const pdfDocType = activeDocumentType === 'quotation' ? 'QUOTATION'
+        : activeDocumentType === 'proforma' ? 'PROFORMA'
+          : 'INVOICE';
+      await generateInvoicePDF(invoiceData as any, pdfDocType as any);
 
       // Save PDF generation record
       const pdfRecord = {
-        fileName: `KONSUT_Invoice_${invoiceData.id}_${Date.now()}.pdf`,
+        fileName: `KONSUT_${activeDocumentType}_${invoiceData.id}_${Date.now()}.pdf`,
         quoteNumber: invoiceData.id,
         generatedAt: new Date().toISOString(),
         customerName,
@@ -584,36 +568,37 @@ const NewInvoice: React.FC = () => {
   const seedSampleStock = () => {
     const sample: Record<Category, Product[]> = {
       products: [
-        { id: "P1001", name: "Mono Perc Solar Panel (450W)", weight: 22, priceKsh: 18500, priceUSD: 145, description: "High-efficiency monocrystalline solar panel" },
-        { id: "P1002", name: "Victron MultiPlus-II 48/5000", weight: 30, priceKsh: 245000, priceUSD: 1900, description: "48V Inverter/Charger 5000VA" },
-        { id: "P1003", name: "SmartSolar MPPT 250/100", weight: 4.5, priceKsh: 85000, priceUSD: 650, description: "Solar Max Power Point Tracker" },
-        { id: "P1004", name: "LiFePO4 Lithium Battery (48V 100Ah)", weight: 45, priceKsh: 165000, priceUSD: 1280, description: "Deep cycle lithium energy storage" },
-        { id: "P1005", name: "Pylontech US3000C Battery Module", weight: 32, priceKsh: 195000, priceUSD: 1500, description: "3.5kWh Li-ion Battery Module" },
-        { id: "P1006", name: "Victron Cerbo GX", weight: 1, priceKsh: 45000, priceUSD: 350, description: "System monitoring center" },
-        { id: "P1007", name: "Victron Lynx Distributor", weight: 2, priceKsh: 28000, priceUSD: 215, description: "Modular DC distribution system" },
-        { id: "P1008", name: "Solar PV Cable (6mm²)", weight: 0.1, priceKsh: 150, priceUSD: 1.2, description: "UV resistant DC solar cable (per meter)" },
-        { id: "P1009", name: "MC4 Solar Connectors (Pair)", weight: 0.05, priceKsh: 250, priceUSD: 2, description: "Male/Female connector pair" },
-        { id: "P1010", name: "12U Wall Mount Server Rack", weight: 15, priceKsh: 12000, priceUSD: 95, description: "Network cabinet with glass door" },
-        { id: "P1011", name: "Ubiquiti UniFi Access Point (WiFi 6)", weight: 0.8, priceKsh: 22000, priceUSD: 170, description: "Long-range enterprise WiFi AP" },
-        { id: "P1012", name: "Mikrotik Cloud Core Router", weight: 3, priceKsh: 65000, priceUSD: 500, description: "High performance enterprise router" },
-        { id: "P1013", name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", weight: 12, priceKsh: 45000, priceUSD: 350, description: "Online Double Conversion UPS" },
-        { id: "P1014", name: "Cisco 24-Port Gigabit Switch", weight: 4, priceKsh: 35000, priceUSD: 270, description: "Managed L2 switch" },
-        { id: "P1015", name: "Cat6 Ethernet Cable (305m Box)", weight: 10, priceKsh: 18000, priceUSD: 140, description: "Pure Copper UTP Cable" },
+        { id: "P1001", name: "Mono Perc Solar Panel (450W)", priceKsh: 18500, priceUSD: 145, description: "High-efficiency monocrystalline solar panel" },
+        { id: "P1002", name: "Victron MultiPlus-II 48/5000", priceKsh: 245000, priceUSD: 1900, description: "48V Inverter/Charger 5000VA" },
+        { id: "P1003", name: "SmartSolar MPPT 250/100", priceKsh: 85000, priceUSD: 650, description: "Solar Max Power Point Tracker" },
+        { id: "P1004", name: "LiFePO4 Lithium Battery (48V 100Ah)", priceKsh: 165000, priceUSD: 1280, description: "Deep cycle lithium energy storage" },
+        { id: "P1005", name: "Pylontech US3000C Battery Module", priceKsh: 195000, priceUSD: 1500, description: "3.5kWh Li-ion Battery Module" },
+        { id: "P1006", name: "Victron Cerbo GX", priceKsh: 45000, priceUSD: 350, description: "System monitoring center" },
+        { id: "P1007", name: "Victron Lynx Distributor", priceKsh: 28000, priceUSD: 215, description: "Modular DC distribution system" },
+        { id: "P1008", name: "Solar PV Cable (6mm²)", priceKsh: 150, priceUSD: 1.2, description: "UV resistant DC solar cable (per meter)" },
+        { id: "P1009", name: "MC4 Solar Connectors (Pair)", priceKsh: 250, priceUSD: 2, description: "Male/Female connector pair" },
+        { id: "P1010", name: "12U Wall Mount Server Rack", priceKsh: 12000, priceUSD: 95, description: "Network cabinet with glass door" },
+        { id: "P1011", name: "Ubiquiti UniFi Access Point (WiFi 6)", priceKsh: 22000, priceUSD: 170, description: "Long-range enterprise WiFi AP" },
+        { id: "P1012", name: "Mikrotik Cloud Core Router", priceKsh: 65000, priceUSD: 500, description: "High performance enterprise router" },
+        { id: "P1013", name: "Agilon HF UPS 1kVA / 2kVA / 3kVA", priceKsh: 45000, priceUSD: 350, description: "Online Double Conversion UPS" },
+        { id: "P1014", name: "Cisco 24-Port Gigabit Switch", priceKsh: 35000, priceUSD: 270, description: "Managed L2 switch" },
+        { id: "P1015", name: "Cat6 Ethernet Cable (305m Box)", priceKsh: 18000, priceUSD: 140, description: "Pure Copper UTP Cable" },
       ],
       mobilization: [
-        { id: "M2001", name: "Site Mobilization & Logistics (Local)", priceKsh: 15000, priceUSD: 115 },
-        { id: "M2002", name: "Site Mobilization & Logistics (Upcountry)", priceKsh: 45000, priceUSD: 350 },
-        { id: "M2003", name: "Specialized Equipment Rental (Crane)", priceKsh: 25000, priceUSD: 195 },
-        { id: "M2004", name: "Scaffolding Setup & Rental", priceKsh: 12000, priceUSD: 95 },
-        { id: "M2005", name: "Technician Travel & Accommodation (Per Day)", priceKsh: 8000, priceUSD: 60 },
-        { id: "M2006", name: "Safety Gear & PPE Provision", priceKsh: 5000, priceUSD: 40 },
-        { id: "M2007", name: "Site Survey & Preliminary Assessment", priceKsh: 10000, priceUSD: 80 },
-        { id: "M2008", name: "Transport - Pickup Truck (Per Km)", priceKsh: 100, priceUSD: 0.8 },
-        { id: "M2009", name: "Transport - 3 Ton Truck (Per Km)", priceKsh: 150, priceUSD: 1.2 },
-        { id: "M2010", name: "Generator Rental (Per Day)", priceKsh: 8500, priceUSD: 65 },
-        { id: "M2011", name: "Network Tool Kit Mobilization", priceKsh: 3000, priceUSD: 25 },
-        { id: "M2012", name: "Fiber Splicing Kit Rental", priceKsh: 5000, priceUSD: 40 },
-        { id: "M2013", name: "Post-Installation Cleanup", priceKsh: 3000, priceUSD: 25 },
+        { id: "M2001", name: "Freight Charges", priceKsh: 5000, priceUSD: 38 },
+        { id: "M2002", name: "Site Mobilization & Logistics (Local)", priceKsh: 15000, priceUSD: 115 },
+        { id: "M2003", name: "Site Mobilization & Logistics (Upcountry)", priceKsh: 45000, priceUSD: 350 },
+        { id: "M2004", name: "Specialized Equipment Rental (Crane)", priceKsh: 25000, priceUSD: 195 },
+        { id: "M2005", name: "Scaffolding Setup & Rental", priceKsh: 12000, priceUSD: 95 },
+        { id: "M2006", name: "Technician Travel & Accommodation (Per Day)", priceKsh: 8000, priceUSD: 60 },
+        { id: "M2007", name: "Safety Gear & PPE Provision", priceKsh: 5000, priceUSD: 40 },
+        { id: "M2008", name: "Site Survey & Preliminary Assessment", priceKsh: 10000, priceUSD: 80 },
+        { id: "M2009", name: "Transport - Pickup Truck (Per Km)", priceKsh: 100, priceUSD: 0.8 },
+        { id: "M2010", name: "Transport - 3 Ton Truck (Per Km)", priceKsh: 150, priceUSD: 1.2 },
+        { id: "M2011", name: "Generator Rental (Per Day)", priceKsh: 8500, priceUSD: 65 },
+        { id: "M2012", name: "Network Tool Kit Mobilization", priceKsh: 3000, priceUSD: 25 },
+        { id: "M2013", name: "Fiber Splicing Kit Rental", priceKsh: 5000, priceUSD: 40 },
+        { id: "M2014", name: "Post-Installation Cleanup", priceKsh: 3000, priceUSD: 25 },
       ],
       services: [
         { id: "S3001", name: "Solar System Installation (Labor)", priceKsh: 25000, priceUSD: 195 },
@@ -641,13 +626,101 @@ const NewInvoice: React.FC = () => {
   };
 
   /* ----------------------------
-     Toolbar (adaptive): search + actions
+     Calculations for UI Display
+     ---------------------------- */
+  const { subtotal, grandTotal } = useMemo(() => {
+    return DocumentEngine.calculateTotals(lines);
+  }, [lines]);
+
+  const displaySubtotal = displayCurrency === "USD"
+    ? (subtotal / usdToKshRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const displayGrandTotal = displayCurrency === "USD"
+    ? (grandTotal / usdToKshRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* ----------------------------
+     Handle Convert (Unidirectional Workflow)
+     ---------------------------- */
+  const handleConvert = (targetType: InvoiceType) => {
+    if (!confirm(`Convert this ${activeDocumentType} to ${targetType}? This will create a NEW document.`)) return;
+
+    try {
+      if (!validateCustomerInfo() || lines.length === 0) {
+        pushToast("Please complete the form first", "error");
+        return;
+      }
+
+      const prefix = targetType === 'quotation' ? 'QUO' : targetType === 'proforma' ? 'PRO' : 'INV';
+      const newId = `${prefix}-${Math.floor(Math.random() * 1000000)}`;
+
+      const newInvoice: Invoice = {
+        id: newId,
+        type: targetType,
+        date: new Date().toISOString(),
+        issuedDate: new Date().toISOString().split('T')[0],
+        dueDate: dueDate || "", // Carry over due date? Or reset? Usually carry over or reset. Let's keep it.
+        quotationValidUntil: targetType === 'quotation' ? dueDate : undefined,
+        customer: {
+          id: customerId,
+          name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
+          address: customerAddress,
+          kraPin: customerKraPin
+        },
+        items: lines,
+        subtotal,
+        grandTotal,
+        tax: 0,
+        currencyRate: usdToKshRate,
+        status: "draft",
+        convertedFrom: editId || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        clientResponsibilities: includeClientResponsibilities ? clientResponsibilities : undefined,
+        termsAndConditions: includeTermsAndConditions ? termsAndConditions : undefined,
+      };
+
+      // Save to invoices array
+      const raw = localStorage.getItem(INVOICES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.unshift(newInvoice);
+      localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
+
+      pushToast(`Converted to ${targetType}`, "success");
+
+      // Navigate to new document
+      setTimeout(() => {
+        navigate(`/new-invoice?id=${newId}&type=${targetType}`);
+        window.location.reload(); // Force reload to pick up new ID cleanly
+      }, 500);
+
+    } catch (e) {
+      console.error("Conversion failed:", e);
+      pushToast("Conversion failed", "error");
+    }
+  };
+
+  /* ----------------------------
+     Render Component
      ---------------------------- */
   const Toolbar = () => (
-    <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all mb-6 rounded-lg">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
-        <p className="text-sm text-gray-500">Create a new invoice or quotation</p>
+    <div className="bg-white p-4 rounded-lg shadow-sm w-full mb-6 border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+        {/* Title & Type Toggles */}
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            {isEditing ? `Edit ${activeDocumentType}` : `New ${activeDocumentType}`}
+            {editId && <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">#{editId}</span>}
+          </h1>
+          <div className="flex gap-2">
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize bg-brand-600 text-white shadow-md`}>
+              {activeDocumentType === 'invoice' ? 'Invoice' : activeDocumentType}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 w-full md:w-auto">
@@ -663,293 +736,344 @@ const NewInvoice: React.FC = () => {
           />
         </div>
 
-        {/* Desktop: labeled buttons */}
+        {/* Desktop Buttons */}
         <div className="hidden md:flex items-center gap-2">
-          <button onClick={clearData} className="px-4 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
-            <FaTrash size={14} /> Clear
+          <>
+            <button onClick={clearData} className="px-4 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
+              <FaTrash size={14} /> Clear
+            </button>
+            <button onClick={seedSampleStock} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
+              <FaSeedling size={14} /> Seed
+            </button>
+          </>
+
+          <button onClick={saveDocument} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
+            <FaSave size={14} /> Save {activeDocumentType === 'quotation' ? 'Quote' : activeDocumentType === 'proforma' ? 'Proforma' : 'Invoice'}
           </button>
-          <button onClick={seedSampleStock} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
-            <FaSeedling size={14} /> Seed
-          </button>
-          <button onClick={saveQuotation} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
-            <FaSave size={14} /> Save
-          </button>
+
           <button onClick={generatePDF} className="px-4 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
-            <FaFilePdf size={14} /> PDF
+            <FaFilePdf size={14} /> Download PDF
           </button>
+
+          {/* Workflow Actions */}
+          {activeDocumentType === 'quotation' && isEditing && (
+            <button
+              // TODO: Ensure convert function is available or implement inline here if short.
+              // Since convert is not defined in this component yet, I'll add the logic separately or user 'saveDocument' with type change trick?
+              // Standard practice: Implement a proper handleConvert function.
+              onClick={() => handleConvert('proforma')}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md"
+            >
+              <FaExchangeAlt size={14} /> Convert to Proforma
+            </button>
+          )}
+
+          {activeDocumentType === 'proforma' && isEditing && (
+            <button
+              onClick={() => handleConvert('invoice')}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md"
+            >
+              <FaExchangeAlt size={14} /> Convert to Invoice
+            </button>
+          )}
         </div>
 
-        {/* Mobile: icons only */}
-        <div className="flex md:hidden items-center gap-2 ml-auto">
-          <button onClick={clearData} className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-100"><FaTrash /></button>
-          <button onClick={seedSampleStock} className="p-2 rounded-lg bg-gray-50 text-gray-600 border border-gray-200"><FaSeedling /></button>
-          <button onClick={saveQuotation} className="p-2 rounded-lg bg-green-100 text-green-700 border border-green-200"><FaSave /></button>
-          <button onClick={generatePDF} className="p-2 rounded-lg bg-brand-100 text-brand-700 border border-brand-200"><FaFilePdf /></button>
+        {/* Mobile Buttons */}
+        <div className="flex md:hidden items-center gap-2">
+          <button onClick={saveDocument} className="p-2 rounded-lg bg-green-600 text-white">
+            <FaSave />
+          </button>
         </div>
       </div>
     </div>
   );
 
-  /* ----------------------------
-     Render
-     ---------------------------- */
   return (
-    <div className="bg-gray-50 font-poppins text-gray-900">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen font-poppins text-gray-900">
       <Toolbar />
 
-      <div className="p-4 max-w-6xl mx-auto">
-        {/* Customer + meta card */}
-        <div className="bg-white p-4 rounded mb-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* LEFT: Customer & Items */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Customer Details */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
+              Customer Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                placeholder="Customer Name *"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className={`border p-2 rounded ${validationErrors.customerName ? "border-red-500" : "border-gray-300"}`}
+              />
+              <input
+                placeholder="Phone Number *"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                className={`border p-2 rounded ${validationErrors.customerPhone ? "border-red-500" : "border-gray-300"}`}
+              />
+              <input
+                placeholder="Email Address *"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className={`border p-2 rounded ${validationErrors.customerEmail ? "border-red-500" : "border-gray-300"}`}
+              />
+              <input
+                placeholder="Address / Location"
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                className="border border-gray-300 p-2 rounded"
+              />
+              <input
+                placeholder="KRA PIN"
+                value={customerKraPin}
+                onChange={(e) => setCustomerKraPin(e.target.value)}
+                className={`border p-2 rounded ${validationErrors.customerKraPin ? "border-red-500" : "border-gray-300"}`}
+              />
+              {validationErrors.customerKraPin && <span className="text-xs text-red-500 col-span-2">{validationErrors.customerKraPin}</span>}
+
+              {/* Dates */}
+              <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-2">
+                <label className="block text-sm">
+                  <span className="text-gray-600 block mb-1">Issued Date</span>
+                  <input type="date" value={issuedDate} onChange={(e) => setIssuedDate(e.target.value)} className="border p-2 rounded w-full" />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-gray-600 block mb-1">
+                    {activeDocumentType === 'quotation' ? 'Valid Until' : 'Due Date'}
+                  </span>
+                  <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={`border p-2 rounded w-full ${validationErrors.dueDate ? "border-red-500" : ""}`} />
+                  {validationErrors.dueDate && <span className="text-xs text-red-500">{validationErrors.dueDate}</span>}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Inventory Selector */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
+              Add Items
+            </h2>
+
+            {/* Category Tabs */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              <button onClick={() => setActiveCategory("products")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "products" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                <FiBox /> Products
+              </button>
+              <button onClick={() => setActiveCategory("mobilization")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "mobilization" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                <FiTruck /> Mobilization
+              </button>
+              <button onClick={() => setActiveCategory("services")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "services" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                <FiTool /> Services
+              </button>
+            </div>
+
+            {/* Selection Row */}
+            <div className="flex flex-col md:flex-row gap-3 items-end bg-gray-50 p-4 rounded-lg">
+              <div className="flex-1 w-full">
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Select Item</label>
+                <select
+                  className="w-full border border-gray-300 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-[#0099ff] focus:border-[#0099ff] outline-none transition-all"
+                  value={selectedId[activeCategory]}
+                  onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
+                >
+                  <option value="">-- Choose {activeCategory} --</option>
+                  {getFilteredForCategory(activeCategory).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.priceKsh ? `Ksh ${p.priceKsh}` : `USD ${p.priceUSD}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-24">
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Qty</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-full border border-gray-300 p-2.5 rounded-lg text-center"
+                  value={selectedQty[activeCategory]}
+                  onChange={(e) => setSelectedQty((q) => ({ ...q, [activeCategory]: Number(e.target.value) }))}
+                />
+              </div>
+
+              <button
+                onClick={() => handleAddSelected(activeCategory)}
+                className="w-full md:w-auto px-6 py-2.5 bg-[#0099ff] hover:bg-blue-600 text-white font-medium rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                <FaPlus /> Add
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Items Table */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-700">Items List ({lines.length})</h3>
+              <button
+                onClick={() => setIncludeDescriptionsInPDF(!includeDescriptionsInPDF)}
+                className={`text-xs px-2 py-1 rounded border ${includeDescriptionsInPDF ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 text-gray-500'}`}
+              >
+                {includeDescriptionsInPDF ? 'PDF: With Desc' : 'PDF: Compact'}
+              </button>
+            </div>
+
+            {lines.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 italic">
+                No items added yet. Select items above to build your invoice.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-xs">
+                    <tr>
+                      <th className="p-3">Item</th>
+                      <th className="p-3 text-center">Qty</th>
+                      <th className="p-3 text-right">Price</th>
+                      <th className="p-3 text-right">Total</th>
+                      <th className="p-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {lines.map((item, idx) => (
+                      <tr key={`${item.id}-${idx}`} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-3">
+                          <div className="font-medium text-gray-900">{item.name}</div>
+                          {showDescriptions && item.description && (
+                            <div className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</div>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => decreaseQty(idx)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaMinus size={10} /></button>
+                            <span className="w-8 text-center font-medium">{item.quantity}</span>
+                            <button onClick={() => increaseQty(idx)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaPlus size={10} /></button>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right">
+                          {displayCurrency === "USD"
+                            ? `$${(item.unitPrice / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                            : item.unitPrice.toLocaleString()
+                          }
+                        </td>
+                        <td className="p-3 text-right font-medium">
+                          {displayCurrency === "USD"
+                            ? `$${(item.lineTotal / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                            : item.lineTotal.toLocaleString()
+                          }
+                        </td>
+                        <td className="p-3 text-center">
+                          <button onClick={() => removeLine(idx)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Custom Notes Section */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
             <div>
-              <h3 className="font-semibold text-lg">{COMPANY.name}</h3>
-              <p>{COMPANY.address1}</p>
-              <p>{COMPANY.address2}</p>
-              <p>Phone: {COMPANY.phone}</p>
-              <p>Email: {COMPANY.email}</p>
-              <p>PIN: {COMPANY.pin}</p>
+              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={includeClientResponsibilities} onChange={(e) => setIncludeClientResponsibilities(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                Client Responsibilities
+              </label>
+              {includeClientResponsibilities && (
+                <textarea
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                  rows={4}
+                  value={clientResponsibilities}
+                  onChange={(e) => setClientResponsibilities(e.target.value)}
+                  placeholder="Enter client responsibilities..."
+                />
+              )}
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-1">Customer Details</p>
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-mono text-gray-400">{customerId}</span>
-                </div>
-                <div className="space-y-3">
-                  <input
-                    placeholder="Customer Name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className={`border border-gray-300 p-2.5 rounded-lg w-full text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow ${validationErrors.customerName ? 'border-red-500 ring-1 ring-red-200' : ''}`}
-                  />
-                  {validationErrors.customerName && <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>}
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <div className="flex-1">
-                    <input
-                      placeholder="Phone"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className={`border p-2 rounded w-full ${validationErrors.customerPhone ? 'border-red-500' : ''}`}
-                    />
-                    {validationErrors.customerPhone && <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>}
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      placeholder="Email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className={`border p-2 rounded w-full ${validationErrors.customerEmail ? 'border-red-500' : ''}`}
-                    />
-                    {validationErrors.customerEmail && <p className="text-red-500 text-xs mt-1">{validationErrors.customerEmail}</p>}
-                  </div>
-                </div>
+              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={includeTermsAndConditions} onChange={(e) => setIncludeTermsAndConditions(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                Terms & Conditions
+              </label>
+              {includeTermsAndConditions && (
                 <textarea
-                  placeholder="Address"
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  className="border p-2 rounded w-full mt-2"
-                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                  rows={4}
+                  value={termsAndConditions}
+                  onChange={(e) => setTermsAndConditions(e.target.value)}
+                  placeholder="Enter T&Cs..."
                 />
-                <div className="mt-2 flex gap-2 items-center">
-                  <label className="text-sm">Valid Till</label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className={`border p-2 rounded ${validationErrors.dueDate ? 'border-red-500' : ''}`}
-                  />
-                  {validationErrors.dueDate && <p className="text-red-500 text-xs mt-1">{validationErrors.dueDate}</p>}
-                  <div className="text-xs text-gray-600 ml-2">
-                    {dueDate ? `${Math.ceil((new Date(dueDate).getTime() - new Date(issuedDate).getTime()) / (1000 * 60 * 60 * 24))} day(s) left` : ""}
-                  </div>
-                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT: Summary & Settings */}
+        <div className="space-y-6">
+          {/* Summary Card */}
+          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 sticky top-6">
+            <h2 className="text-lg font-bold mb-4 text-gray-800">Quote Summary</h2>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span className="font-medium text-gray-900">{displayCurrency === "USD" ? "$" : "Ksh"} {displaySubtotal}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>VAT (16%)</span>
+                <span className="font-medium text-gray-900">-</span>
+              </div>
+              <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                <span className="font-bold text-lg text-gray-900">Total</span>
+                <span className="font-bold text-xl text-[#0099ff]">{displayCurrency === "USD" ? "$" : "Ksh"} {displayGrandTotal}</span>
+              </div>
+            </div>
+
+            <button onClick={saveDocument} className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
+              <FaSave /> Save Document
+            </button>
+
+            <button onClick={() => window.print()} className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+              <FaFilePdf /> PDF / Print
+            </button>
+
+            {/* Settings Toggles in Summary */}
+            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Display Currency</span>
+                <button
+                  onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
+                  className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
+                >
+                  <FaExchangeAlt /> {displayCurrency}
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Exchange Rate (1 USD = ? Ksh)</label>
+                <input
+                  type="number"
+                  value={usdToKshRate}
+                  onChange={(e) => setUsdToKshRate(Number(e.target.value))}
+                  className="w-full border p-2 rounded text-sm bg-gray-50"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Show Descriptions</span>
+                <input type="checkbox" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} />
               </div>
             </div>
           </div>
         </div>
-
-        {/* Freight & conversion controls */}
-        <div className="bg-white p-3 rounded mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div>
-            <p><strong>Freight Rate (Ksh per kg):</strong> <span className="ml-2">{freightRate}</span></p>
-            <p className="text-xs text-gray-600">Product freight auto calculated (weight × freight rate × qty).</p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              title="Toggle currency display"
-              onClick={() => setDisplayCurrency(d => d === "Ksh" ? "USD" : "Ksh")}
-              className="p-2 rounded bg-gray-100 hover:bg-gray-200"
-            >
-              <FaExchangeAlt /> {displayCurrency}
-            </button>
-            <button title="Toggle conversion input" onClick={() => setShowConversionInput(s => !s)} className="p-2 rounded bg-gray-100">
-              <FaExchangeAlt />
-            </button>
-            {showConversionInput && (
-              <input
-                type="number"
-                value={usdToKshRate}
-                onChange={(e) => setUsdToKshRate(Number(e.target.value || 0))}
-                className="border p-2 rounded w-40"
-              />
-            )}
-            <button title="Toggle descriptions visible in editor" onClick={() => setShowDescriptions(s => !s)} className="p-2 rounded bg-gray-100">
-              {showDescriptions ? <FaEyeSlash /> : <FaEye />}
-            </button>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={includeDescriptionsInPDF} onChange={(e) => setIncludeDescriptionsInPDF(e.target.checked)} />
-              Include descriptions in PDF
-            </label>
-          </div>
-        </div>
-
-        {/* Category buttons */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setActiveCategory("products")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "products" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
-            <FaSeedling className="md:inline" /> <span className="hidden md:inline">Products</span>
-          </button>
-          <button onClick={() => setActiveCategory("mobilization")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "mobilization" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
-            <FaTruck className="md:inline" /> <span className="hidden md:inline">Mobilization</span>
-          </button>
-          <button onClick={() => setActiveCategory("services")} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${activeCategory === "services" ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
-            <FaToolbox className="md:inline" /> <span className="hidden md:inline">Services</span>
-          </button>
-        </div>
-
-        {/* Active panel: search + select + qty + add */}
-        <div className="bg-white p-4 rounded mb-4">
-          <div className="flex flex-col md:flex-row gap-2 items-center mb-3">
-            <div className="flex items-center gap-2 flex-1 w-full md:w-auto">
-              <FaSearch />
-              <input
-                placeholder={`Search ${activeCategory}...`}
-                value={search[activeCategory]}
-                onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))}
-                className="border p-2 rounded w-full"
-              />
-            </div>
-
-            <select
-              value={selectedId[activeCategory]}
-              onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
-              className="border p-2 rounded w-full md:w-2/3"
-            >
-              <option value="">Select {activeCategory}...</option>
-              {getFilteredForCategory(activeCategory).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.weight ? `— ${p.weight}kg` : ""} {p.priceKsh ? `— Ksh ${p.priceKsh}` : p.priceUSD ? `— $${p.priceUSD}` : ""}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                value={selectedQty[activeCategory]}
-                onChange={(e) => setSelectedQty((q) => ({ ...q, [activeCategory]: Math.max(1, Number(e.target.value || 1)) }))}
-                className="w-20 border p-2 rounded text-right"
-              />
-              <button onClick={() => handleAddSelected(activeCategory)} className="p-2 rounded bg-[#007FFF] text-white"><FaPlus /></button>
-            </div>
-          </div>
-
-          {showDescriptions && <p className="text-xs text-gray-600">Descriptions are visible in the editor. Toggle to hide them.</p>}
-        </div>
-
-        {/* Items table (single scrollable table) */}
-        <div className="bg-white p-4 rounded mb-4">
-          <h3 className="font-semibold mb-2">Items</h3>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-1 text-left">{showDescriptions ? "Description" : "Item"}</th>
-                  <th className="border px-2 py-1">Category</th>
-                  <th className="border px-2 py-1">Qty</th>
-                  <th className="border px-2 py-1 text-right">Unit ({displayCurrency})</th>
-                  <th className="border px-2 py-1 text-right">Line Total ({displayCurrency})</th>
-                  <th className="border px-2 py-1 text-right">Freight ({displayCurrency})</th>
-                  <th className="border px-2 py-1">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.length === 0 ? (
-                  <tr><td colSpan={7} className="p-4 text-sm text-gray-600">No items added yet.</td></tr>
-                ) : lines.map((l, idx) => (
-                  <tr key={`${l.id}-${idx}`} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td className="border px-2 py-1">{showDescriptions ? (l.description ?? l.name) : l.name}</td>
-                    <td className="border px-2 py-1">{l.category}</td>
-                    <td className="border px-2 py-1 text-center">
-                      <div className="inline-flex items-center gap-2">
-                        <button onClick={() => decreaseQty(idx)} className="p-1 rounded bg-gray-100"><FaMinus /></button>
-                        <span className="w-8 text-center">{l.quantity}</span>
-                        <button onClick={() => increaseQty(idx)} className="p-1 rounded bg-gray-100"><FaPlus /></button>
-                      </div>
-                    </td>
-                    <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD"
-                        ? `$${(l.unitPrice / usdToKshRate).toFixed(2)}`
-                        : `Ksh ${l.unitPrice.toLocaleString()}`
-                      }
-                    </td>
-                    <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD"
-                        ? `$${((l.unitPrice * l.quantity) / usdToKshRate).toFixed(2)}`
-                        : `Ksh ${(l.unitPrice * l.quantity).toLocaleString()}`
-                      }
-                    </td>
-                    <td className="border px-2 py-1 text-right">
-                      {displayCurrency === "USD"
-                        ? `$${((l.productFreight || 0) / usdToKshRate).toFixed(2)}`
-                        : `Ksh ${(l.productFreight || 0).toLocaleString()}`
-                      }
-                    </td>
-                    <td className="border px-2 py-1 text-center">
-                      <button onClick={() => removeLine(idx)} className="p-1 text-red-600"><FaTrash /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Totals & action area */}
-        <div className="bg-white p-4 rounded mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <p><strong>Subtotal:</strong> {displayCurrency === "USD" ? `$${displaySubtotal}` : `Ksh ${Number(displaySubtotal).toLocaleString()}`}</p>
-              <p><strong>Product Freight Total:</strong> {displayCurrency === "USD" ? `$${displayFreightTotal}` : `Ksh ${Number(displayFreightTotal).toLocaleString()}`}</p>
-              <p className="text-lg font-bold"><strong>Grand Total:</strong> {displayCurrency === "USD" ? `$${displayGrandTotal}` : `Ksh ${Number(displayGrandTotal).toLocaleString()}`}</p>
-            </div>
-
-            <div className="flex gap-2 items-center flex-wrap">
-              <button onClick={saveQuotation} className="px-3 py-1 rounded bg-green-600 text-white">Save Quotation</button>
-              <button onClick={generatePDF} className="px-3 py-1 rounded bg-brand-600 hover:bg-brand-700 text-white flex items-center gap-2"><FaFilePdf /> <span className="hidden md:inline">Download PDF</span></button>
-            </div>
-          </div>
-
-
-          {/* Footer */}
-          <div className="text-center text-gray-500 text-xs mb-8">
-            If you have any questions about this price quote, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya
-          </div>
-        </div>
-
-        {/* Toasts */}
-        <div className="fixed bottom-4 right-4 space-y-2 z-50">
-          {toasts.map((t) => (
-            <div key={t.id} className={`px-4 py-2 rounded shadow text-white ${t.type === "success" ? "bg-green-600" : t.type === "error" ? "bg-red-600" : "bg-blue-600"}`}>
-              {t.message}
-            </div>
-          ))}
-        </div>
       </div>
+
     </div>
   );
 };

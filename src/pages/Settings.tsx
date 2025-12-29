@@ -214,6 +214,24 @@ const Settings: React.FC = () => {
     }
   }, []);
 
+  // Apply Theme Helper
+  const applyThemeChange = (themeMode: 'light' | 'dark' | 'auto') => {
+    const root = document.documentElement;
+
+    if (themeMode === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    } else if (themeMode === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
   // Actions
   const saveSettings = () => {
     setSaveStatus("saving");
@@ -228,6 +246,9 @@ const Settings: React.FC = () => {
       localStorage.setItem("notificationSettings", JSON.stringify(notificationSettings));
       localStorage.setItem("systemSettings", JSON.stringify(systemSettings));
       localStorage.setItem("appSettings", JSON.stringify(updatedApp));
+
+      // Apply theme immediately
+      applyThemeChange(userPreferences.theme);
 
       // Simulate network delay for better UX feel
       setTimeout(() => {
