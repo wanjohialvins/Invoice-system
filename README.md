@@ -89,6 +89,11 @@ A professional, feature-rich invoice management system built with React, TypeScr
 - **Search & Filter**: Quick search across invoices, clients, and stock
 - **Comprehensive Comments**: Well-documented codebase for maintainability
 
+## 📖 Documentation & Security
+
+- **[USER_MANUAL.md](USER_MANUAL.md)**: Comprehensive guide for operators and developers.
+- **[LICENSE](LICENSE)**: Proprietary license and copyright information.
+
 ## 🚀 Getting Started
 
 ### Prerequisites
