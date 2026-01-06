@@ -1,5 +1,7 @@
 # KONSUT Ltd Invoice Management System
 
+![Deploy to cPanel](https://github.com/wanjohialvins/Invoice-system/actions/workflows/deploy.yml/badge.svg)
+
 A professional, feature-rich invoice management system built with React, TypeScript, and Vite. This comprehensive application provides tools for creating quotations, managing invoices, tracking inventory, maintaining client databases, and generating professional PDF documents.
 
 ![KONSUT Ltd](./public/konsut-banner.png)
