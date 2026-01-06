@@ -188,11 +188,20 @@ const Invoices: React.FC = () => {
     if (!confirm(`Convert this ${invoice.type} to ${toType}?`)) return;
 
     try {
-      const newId = toType === 'proforma'
-        ? `PRO-${Date.now()}`
-        : toType === 'invoice'
-          ? `INV-${Date.now()}`
-          : `QUO-${Date.now()}`;
+      // Preserve the suffix details (everything after the first hyphen)
+      // e.g., QUO-20231025-01 -> PRO-20231025-01
+      // e.g., QUO-1767741434920 -> PRO-1767741434920
+      const parts = invoice.id.split('-');
+      const suffix = parts.length > 1 ? parts.slice(1).join('-') : `${Date.now()}`;
+
+      const prefixMap: Record<string, string> = {
+        quotation: 'QUO',
+        proforma: 'PRO',
+        invoice: 'INV'
+      };
+
+      const newPrefix = prefixMap[toType] || 'DOC';
+      const newId = `${newPrefix}-${suffix}`;
 
       const newDocument: InvoiceData = {
         ...invoice,
@@ -333,14 +342,16 @@ const Invoices: React.FC = () => {
               <button
                 key={type}
                 onClick={() => setActiveTab(type as DocumentType)}
-                className={`flex-1 px-6 py-4 text-sm font-medium transition-all relative ${activeTab === type
+                className={`flex-1 px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium transition-all relative ${activeTab === type
                   ? 'text-brand-600 bg-brand-50/50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <span className="capitalize text-base">{type === 'proforma' ? 'Proforma Orders' : type === 'invoice' ? 'Orders' : 'Quotations'}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === type ? 'bg-brand-600 text-white shadow-md shadow-brand-500/30' : 'bg-gray-200 text-gray-600'
+                <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
+                  <span className="capitalize text-sm md:text-base">
+                    {type === 'proforma' ? <><span className="md:hidden">Proforma</span><span className="hidden md:inline">Proforma Orders</span></> : type === 'invoice' ? 'Orders' : 'Quotations'}
+                  </span>
+                  <span className={`px-1.5 py-0.5 md:px-2 rounded-full text-[10px] md:text-xs font-bold ${activeTab === type ? 'bg-brand-600 text-white shadow-md shadow-brand-500/30' : 'bg-gray-200 text-gray-600'
                     }`}>
                     {counts[type as DocumentType]}
                   </span>

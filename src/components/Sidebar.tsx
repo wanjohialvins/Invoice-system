@@ -20,12 +20,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         }
       `}
     >
-      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950">
-        <div className="flex items-center group cursor-pointer">
-          <div className="w-8 h-8 bg-brand-500 rounded flex items-center justify-center mr-3 shadow-lg shadow-brand-500/30 group-hover:animate-pulse transition-all">
-            <span className="font-bold text-white text-lg">K</span>
-          </div>
-          <span className="text-xl font-bold tracking-wide group-hover:text-brand-400 transition-colors">KONSUT</span>
+      <div className="h-28 flex items-center justify-center px-4 border-b border-slate-800 bg-slate-950">
+        <div className="flex items-center group cursor-pointer hover:scale-105 transition-transform duration-200">
+          <img
+            src="/src/assets/logo.jpg"
+            alt="Konsut Logo"
+            className="h-20 w-auto object-contain rounded-md shadow-lg shadow-black/20"
+          />
         </div>
 
         {/* Close button - only visible on mobile */}
@@ -143,7 +144,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
       <div className="mt-auto p-4 border-t border-slate-800 bg-slate-950/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-400 to-brand-600 animate-pulse"></div>
+          <img
+            src="/src/assets/avatar_new.jpg"
+            alt="User Avatar"
+            className="w-10 h-10 rounded-full object-cover border-2 border-brand-500"
+          />
           <div>
             <div className="text-sm font-medium text-white">Eragon Devs</div>
             <div className="text-xs text-slate-500">Admin</div>

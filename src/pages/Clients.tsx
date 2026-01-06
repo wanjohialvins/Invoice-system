@@ -395,13 +395,13 @@ const Clients: React.FC = () => {
               <FaSync className={syncing ? "animate-spin" : ""} /> Sync
             </button>
             <button onClick={() => { setEditingClient(null); setFormData({ name: "", phone: "", email: "", address: "", company: "", kraPin: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#0099ff] text-white rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 font-medium">
-              <FaPlus /> Add Client
+              <FaPlus /> <span className="hidden md:inline">Add Client</span><span className="md:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <div className="text-gray-500 text-sm">Total Clients</div>
             <div className="text-2xl font-bold text-gray-800">{clients.length}</div>
@@ -574,7 +574,7 @@ const Clients: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
                   <div className="text-xs text-gray-500 uppercase font-semibold">Lifetime Value</div>
                   <div className="text-xl font-bold text-green-600">

@@ -738,7 +738,18 @@ const NewInvoice: React.FC = () => {
         return;
       }
 
-      const newId = SequenceManager.getNextNumber(targetType);
+      // Preserve ID suffix logic: QUO-123 -> PRO-123
+      let newId = SequenceManager.getNextNumber(targetType);
+
+      if (editId) {
+        const parts = editId.split('-');
+        if (parts.length > 1) {
+          const suffix = parts.slice(1).join('-');
+          // Determine prefix based on target type
+          const prefix = targetType === 'quotation' ? 'QUO' : targetType === 'proforma' ? 'PRO' : 'INV';
+          newId = `${prefix}-${suffix}`;
+        }
+      }
 
       const newInvoice: Invoice = {
         id: newId,
@@ -792,82 +803,85 @@ const NewInvoice: React.FC = () => {
      Render Component
      ---------------------------- */
   const Toolbar = () => (
-    <div className="bg-white p-4 rounded-lg shadow-sm w-full mb-6 border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-      <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+    <div className="bg-white p-4 rounded-lg shadow-sm w-full mb-6 border border-gray-100 flex flex-col gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
         {/* Title & Type Toggles */}
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            {isEditing ? `Edit ${activeDocumentType}` : `New ${activeDocumentType}`}
-            {editId && <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">#{editId}</span>}
-          </h1>
-          <div className="flex gap-2">
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize bg-brand-600 text-white shadow-md`}>
-              {activeDocumentType === 'invoice' ? 'Invoice' : activeDocumentType}
-            </span>
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+              {isEditing ? `Edit ${activeDocumentType}` : `New ${activeDocumentType}`}
+              {editId && <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">#{editId}</span>}
+            </h1>
+            <div className="flex gap-2">
+              <span className={`px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all capitalize bg-brand-600 text-white shadow-md`}>
+                {activeDocumentType === 'invoice' ? 'Invoice' : activeDocumentType}
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile Action Buttons (Visible only on mobile) */}
+          <div className="flex md:hidden items-center gap-2">
+            <button onClick={saveDocument} className="p-2 rounded-lg bg-green-600 text-white shadow-sm">
+              <FaSave />
+            </button>
+            <button onClick={generatePDF} className="p-2 rounded-lg bg-[#0099ff] text-white shadow-sm">
+              <FaFilePdf />
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-3 w-full md:w-auto">
-        {/* Search */}
-        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 md:flex-none w-full md:w-64 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
-          <FaSearch className="text-gray-400" />
-          <input
-            type="text"
-            placeholder={`Search ${activeCategory}...`}
-            value={search[activeCategory]}
-            onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))}
-            className="ml-2 bg-transparent outline-none w-full text-sm placeholder-gray-400 text-gray-700"
-          />
-        </div>
+        {/* Search & Desktop Actions */}
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+          {/* Search */}
+          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-full md:w-64 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+            <FaSearch className="text-gray-400" />
+            <input
+              type="text"
+              placeholder={`Search ${activeCategory}...`}
+              value={search[activeCategory]}
+              onChange={(e) => setSearch((s) => ({ ...s, [activeCategory]: e.target.value }))}
+              className="ml-2 bg-transparent outline-none w-full text-sm placeholder-gray-400 text-gray-700"
+            />
+          </div>
 
-        {/* Desktop Buttons */}
-        <div className="hidden md:flex items-center gap-2">
-          <>
-            <button onClick={clearData} className="px-4 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
-              <FaTrash size={14} /> Clear
+          {/* Desktop Buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            <>
+              <button onClick={clearData} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+                <FaTrash size={14} /> Clear
+              </button>
+              <button onClick={seedSampleStock} className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+                <FaSeedling size={14} /> Seed
+              </button>
+            </>
+
+            <button onClick={saveDocument} className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
+              <FaSave size={14} /> Save
             </button>
-            <button onClick={seedSampleStock} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
-              <FaSeedling size={14} /> Seed
+
+            <button onClick={generatePDF} className="px-3 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
+              <FaFilePdf size={14} /> Download
             </button>
-          </>
 
-          <button onClick={saveDocument} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
-            <FaSave size={14} /> Save {activeDocumentType === 'quotation' ? 'Quote' : activeDocumentType === 'proforma' ? 'Proforma' : 'Invoice'}
-          </button>
+            {/* Workflow Actions */}
+            {activeDocumentType === 'quotation' && isEditing && (
+              <button
+                onClick={() => handleConvert('proforma')}
+                className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
+              >
+                <FaExchangeAlt size={14} /> Convert
+              </button>
+            )}
 
-          <button onClick={generatePDF} className="px-4 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
-            <FaFilePdf size={14} /> Download
-          </button>
-
-          {/* Workflow Actions */}
-          {activeDocumentType === 'quotation' && isEditing && (
-            <button
-              // TODO: Ensure convert function is available or implement inline here if short.
-              // Since convert is not defined in this component yet, I'll add the logic separately or user 'saveDocument' with type change trick?
-              // Standard practice: Implement a proper handleConvert function.
-              onClick={() => handleConvert('proforma')}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md"
-            >
-              <FaExchangeAlt size={14} /> Convert to Proforma
-            </button>
-          )}
-
-          {activeDocumentType === 'proforma' && isEditing && (
-            <button
-              onClick={() => handleConvert('invoice')}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md"
-            >
-              <FaExchangeAlt size={14} /> Convert to Invoice
-            </button>
-          )}
-        </div>
-
-        {/* Mobile Buttons */}
-        <div className="flex md:hidden items-center gap-2">
-          <button onClick={saveDocument} className="p-2 rounded-lg bg-green-600 text-white">
-            <FaSave />
-          </button>
+            {activeDocumentType === 'proforma' && isEditing && (
+              <button
+                onClick={() => handleConvert('invoice')}
+                className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
+              >
+                <FaExchangeAlt size={14} /> Convert
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1123,8 +1137,8 @@ const NewInvoice: React.FC = () => {
               <FaSave /> Save Document
             </button>
 
-            <button onClick={() => window.print()} className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-              <FaFilePdf /> PDF / Print
+            <button onClick={generatePDF} className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+              <FaFilePdf /> Download
             </button>
 
             {/* Settings Toggles in Summary */}
