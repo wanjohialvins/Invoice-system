@@ -32,5 +32,5 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./invoice.konsut.co.ke/ # Updated based on your subdomain
+          server-dir: ./ # FTP user is already inside the correct folder
           dangerous-clean-slate: true # Be careful! This deletes files on server not present in local
