@@ -45,13 +45,19 @@ export class DocumentEngine {
 
     /**
      * Formats a document number consistent with the backend-style rules.
-     * e.g. INV-2025-000123
+     * e.g. QUO-0105-01 (MMDD-XX)
      */
     static formatDocumentNumber(type: 'invoice' | 'quotation' | 'proforma', sequence: number, date: Date = new Date()): string {
-        const year = date.getFullYear();
-        const prefix = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QTN' : 'PRF';
-        // Pad sequence to 6 digits
-        const seqStr = sequence.toString().padStart(6, '0');
-        return `${prefix}-${year}-${seqStr}`;
+        const prefix = type === 'invoice' ? 'INV' : type === 'quotation' ? 'QUO' : 'PRO'; // Changed to QUO/PRO as per request
+
+        // MMDD format
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const dateStr = `${month}${day}`;
+
+        // Pad sequence to 2 digits (e.g. 01)
+        const seqStr = sequence.toString().padStart(2, '0');
+
+        return `${prefix}-${dateStr}-${seqStr}`;
     }
 }

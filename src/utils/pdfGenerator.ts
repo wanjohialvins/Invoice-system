@@ -4,6 +4,19 @@ import { getCompanySettings, getInvoiceSettings } from "../utils/config";
 import logo from "../assets/logo.jpg";
 
 import type { Invoice as InvoiceData } from "../types/types";
+import JsBarcode from "jsbarcode";
+
+const generateBarcode = (text: string): string => {
+  const canvas = document.createElement("canvas");
+  JsBarcode(canvas, text, {
+    format: "CODE128",
+    displayValue: false,
+    height: 30,
+    width: 1,
+    margin: 0
+  });
+  return canvas.toDataURL("image/png");
+};
 
 const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number; height: number } | null> =>
   new Promise((resolve) => {
@@ -164,7 +177,7 @@ export const generateInvoicePDF = async (
     if ((documentType === 'QUOTATION' && invoice.quotationValidUntil) || invoice.dueDate) {
       detailLines++;
     }
-    const detailsHeight = 7 + (detailLines * 5) + 4; // Header + lines + padding
+    const detailsHeight = 7 + (detailLines * 5) + 4 + 15; // Header + lines + padding + Barcode space
 
     // Use the taller of the two for alignment
     const maxDetailsHeight = Math.max(billToHeight, detailsHeight);
@@ -187,6 +200,10 @@ export const generateInvoicePDF = async (
       doc.text(addrLines, margin + 4, y);
     }
 
+
+
+    // ... inside generateInvoicePDF
+
     // Box 2: Invoice Details
     let detailsHeader = "Invoice Details:";
     if (documentType === 'QUOTATION') detailsHeader = "Quotation Details:";
@@ -196,6 +213,8 @@ export const generateInvoicePDF = async (
     y = detailsY + 12;
     const labelX = rightBoxX + 4;
     const valX = rightBoxX + 45;
+
+
 
     const printRow = (label: string, value: string, color?: number[]) => {
       doc.setTextColor(0, 0, 0); // Pure Black
@@ -218,6 +237,18 @@ export const generateInvoicePDF = async (
       printRow("Valid Until:", invoice.quotationValidUntil);
     } else if (invoice.dueDate) {
       printRow("Due Date:", invoice.dueDate);
+    }
+
+    // --- Barcode (Under Due Date) ---
+    try {
+      const barcodeData = generateBarcode(invoice.id);
+      const barcodeWidth = 40;
+      const barcodeHeight = 10;
+      // Center barcode in the box below the text
+      const barcodeX = rightBoxX + (boxWidth - barcodeWidth) / 2;
+      doc.addImage(barcodeData, "PNG", barcodeX, y + 2, barcodeWidth, barcodeHeight);
+    } catch (e) {
+      console.warn("Barcode generation failed", e);
     }
 
     // Status (Removed from PDF as requested, but keeping code if needed later commented out)

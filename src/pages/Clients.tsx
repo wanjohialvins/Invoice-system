@@ -19,6 +19,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaPlus,
   FaEdit,
@@ -142,6 +143,7 @@ const downloadCSV = (clients: Client[], statsMap: Record<string, any>) => {
 
 const Clients: React.FC = () => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
@@ -492,8 +494,11 @@ const Clients: React.FC = () => {
                           {stats.lastActive ? new Date(stats.lastActive).toLocaleDateString() : "Never"}
                         </td>
                         <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
-                          <button onClick={e => { e.stopPropagation(); setSelectedClient(client); }} className="p-2 text-gray-400 hover:text-brand-500 transition">
+                          <button onClick={e => { e.stopPropagation(); setSelectedClient(client); }} className="p-2 text-gray-400 hover:text-brand-500 transition" title="View Details">
                             <FaEye />
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); navigate(`/new-invoice?clientId=${client.id}`); }} className="p-2 text-blue-500 hover:text-blue-700 transition" title="Create Invoice">
+                            <FaFileInvoice />
                           </button>
                         </td>
                       </tr>

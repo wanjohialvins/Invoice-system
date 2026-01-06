@@ -6,27 +6,27 @@ type SequenceConfig = {
     invoice: number;
     quotation: number;
     proforma: number;
-    lastYear: number;
+    lastDate: string; // YYYY-MM-DD
 };
 
 export class SequenceManager {
     private static getSequences(): SequenceConfig {
         const raw = localStorage.getItem(SEQUENCE_KEY);
-        const currentYear = new Date().getFullYear();
+        const todayCommon = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
         const defaults: SequenceConfig = {
             invoice: 0,
             quotation: 0,
             proforma: 0,
-            lastYear: currentYear
+            lastDate: todayCommon
         };
 
         if (!raw) return defaults;
 
         try {
             const data = JSON.parse(raw) as SequenceConfig;
-            // Yearly reset check
-            if (data.lastYear !== currentYear) {
+            // Daily reset check
+            if (data.lastDate !== todayCommon) {
                 return defaults;
             }
             return data;

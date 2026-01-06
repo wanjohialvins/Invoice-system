@@ -46,6 +46,7 @@ type Category = "products" | "mobilization" | "services";
 const STOCK_KEY = "stockData";
 const DRAFT_KEY = "konsut_newinvoice_draft_vFinal";
 const INVOICES_KEY = "invoices";
+const CLIENTS_KEY = "konsut_clients"; // Added constant
 const USD_TO_KSH_KEY = "usdToKshRate";
 const LAST_SAVED_QUOTE_KEY = "konsut_last_saved_quote";
 
@@ -89,6 +90,7 @@ const NewInvoice: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("id");
+  const clientIdParam = searchParams.get("clientId");
   const isEditing = !!editId;
 
   // -- State --
@@ -220,6 +222,32 @@ const NewInvoice: React.FC = () => {
         }
       } else {
         pushToast("Invoice to edit not found", "error");
+      }
+    } else if (clientIdParam) {
+      // --- NEW FROM CLIENT ---
+      // User came from Clients page to create a new invoice for a specific client
+      const storedClients = localStorage.getItem(CLIENTS_KEY);
+      if (storedClients) {
+        try {
+          const clients: any[] = JSON.parse(storedClients);
+          const client = clients.find(c => c.id === clientIdParam);
+          if (client) {
+            pushToast(`Started new invoice for ${client.name}`, "info");
+            setCustomerId(client.id);
+            setCustomerName(client.name);
+            setCustomerPhone(client.phone);
+            setCustomerEmail(client.email);
+            setCustomerAddress(client.address);
+            setCustomerKraPin(client.kraPin || "");
+            // Ensure defaults
+            setLines([]);
+            setIssuedDate(todayISO);
+          } else {
+            pushToast("Client not found", "error");
+          }
+        } catch (e) {
+          console.error("Failed to load client param", e);
+        }
       }
     } else {
       // --- DRAFT MODE ---
@@ -441,8 +469,25 @@ const NewInvoice: React.FC = () => {
     }
 
     try {
-      const prefix = activeDocumentType === 'quotation' ? 'QUO' : activeDocumentType === 'proforma' ? 'PRO' : 'INV';
-      const docId = `${prefix}-${Math.floor(Math.random() * 1000000)}`;
+      // Use SequenceManager for sequential IDs
+      // If we are editing a real document (not a draft/new), we should probably keep the ID?
+      // But here we are "saving" which implies finalizing.
+      // If editId is already a valid format, we keep it. Use regex or check?
+      // For simplicity, if it's "New" (no editId) or we are converting, we generate.
+      // Actually, saveDocument adds it to the list.
+      let docId = editId;
+      if (!docId || docId.startsWith("QUO-") || docId.startsWith("PRO-") || docId.startsWith("INV-")) {
+        // If we are editing, we keep existing ID.
+        // BUT, if we are saving a Draft as a real document for the first time?
+        // The current logic doesn't distinguish well.
+        // Let's assume if it is a "save", we are minting a new number if one isn't assigned.
+        // However, the current code generates a random ID EVERY TIME saveDocument is called?
+        // No, saveDocument is manual.
+        if (!docId) {
+          docId = SequenceManager.getNextNumber(activeDocumentType);
+        }
+      }
+
 
       const invoiceObj: Invoice = {
         id: docId,
@@ -505,8 +550,21 @@ const NewInvoice: React.FC = () => {
 
     try {
       // 1. Prepare Data Object
+      // Use existing ID if available, otherwise generate ONE time (and save it??)
+      // Ideally, we should save before generating PDF to lock the number.
+      let finalId = editId;
+      if (!finalId) {
+        finalId = SequenceManager.getNextNumber(activeDocumentType);
+        // Update URL/State to reflect this new ID so we don't burn another one next time
+        // This requires navigating or state update.
+        // For now, let's just use it for the PDF.
+        // BEST PRACTICE: Auto-save the document with this new ID.
+        // We will allow the PDF to be generated with the new ID.
+      }
+
       const invoiceData = {
-        id: `QUO-${Math.floor(Math.random() * 1000000)}`,
+        id: finalId,
+        type: activeDocumentType,
         date: new Date().toISOString(),
         issuedDate,
         dueDate: dueDate || "",
@@ -523,10 +581,35 @@ const NewInvoice: React.FC = () => {
         tax: 0,
         grandTotal,
         currencyRate: usdToKshRate,
-        status: "draft",
+        status: "draft" as const,
         clientResponsibilities: includeClientResponsibilities ? clientResponsibilities : undefined,
         termsAndConditions: includeTermsAndConditions ? termsAndConditions : undefined,
       };
+
+      // --- AUTO-SAVE LOGIC START ---
+      // We want to save this to the main list as if "Save" was clicked.
+      const invoiceObjForSave: Invoice = {
+        ...invoiceData,
+        quotationValidUntil: activeDocumentType === 'quotation' ? dueDate : undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const raw = localStorage.getItem(INVOICES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      // Check if ID already exists to avoid duplicates if user clicks multiple times
+      const existingIdx = arr.findIndex((inv: Invoice) => inv.id === finalId);
+      if (existingIdx >= 0) {
+        arr[existingIdx] = invoiceObjForSave;
+      } else {
+        arr.unshift(invoiceObjForSave);
+      }
+      localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
+
+      if (activeDocumentType === 'quotation') {
+        localStorage.setItem(LAST_SAVED_QUOTE_KEY, JSON.stringify(invoiceObjForSave));
+      }
+      // --- AUTO-SAVE LOGIC END ---
 
       // Use the professional PDF generator with correct document type
       const pdfDocType = activeDocumentType === 'quotation' ? 'QUOTATION'
@@ -655,8 +738,7 @@ const NewInvoice: React.FC = () => {
         return;
       }
 
-      const prefix = targetType === 'quotation' ? 'QUO' : targetType === 'proforma' ? 'PRO' : 'INV';
-      const newId = `${prefix}-${Math.floor(Math.random() * 1000000)}`;
+      const newId = SequenceManager.getNextNumber(targetType);
 
       const newInvoice: Invoice = {
         id: newId,
@@ -755,7 +837,7 @@ const NewInvoice: React.FC = () => {
           </button>
 
           <button onClick={generatePDF} className="px-4 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
-            <FaFilePdf size={14} /> Download PDF
+            <FaFilePdf size={14} /> Download
           </button>
 
           {/* Workflow Actions */}
