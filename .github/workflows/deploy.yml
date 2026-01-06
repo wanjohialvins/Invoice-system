@@ -32,5 +32,5 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./public_html/ # Update this to your specific path if needed (e.g. ./public_html/invoice-app/)
+          server-dir: ./invoice.konsut.co.ke/ # Updated based on your subdomain
           dangerous-clean-slate: true # Be careful! This deletes files on server not present in local
