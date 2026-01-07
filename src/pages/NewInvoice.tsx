@@ -30,6 +30,9 @@ import {
   FaSeedling,
   FaSpinner,
   FaEraser,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaEnvelope
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
@@ -1121,110 +1124,111 @@ const NewInvoice: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-            )}
               </div>
+            )}
+          </div>
 
           {/* Custom Notes Section */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
-              <div>
-                <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
-                  <input type="checkbox" checked={includeClientResponsibilities} onChange={(e) => setIncludeClientResponsibilities(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
-                  Client Responsibilities
-                </label>
-                {includeClientResponsibilities && (
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
-                    rows={4}
-                    value={clientResponsibilities}
-                    onChange={(e) => setClientResponsibilities(e.target.value)}
-                    placeholder="Enter client responsibilities..."
-                  />
-                )}
-              </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
+            <div>
+              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={includeClientResponsibilities} onChange={(e) => setIncludeClientResponsibilities(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                Client Responsibilities
+              </label>
+              {includeClientResponsibilities && (
+                <textarea
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                  rows={4}
+                  value={clientResponsibilities}
+                  onChange={(e) => setClientResponsibilities(e.target.value)}
+                  placeholder="Enter client responsibilities..."
+                />
+              )}
+            </div>
 
-              <div>
-                <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
-                  <input type="checkbox" checked={includeTermsAndConditions} onChange={(e) => setIncludeTermsAndConditions(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
-                  Terms & Conditions
-                </label>
-                {includeTermsAndConditions && (
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
-                    rows={4}
-                    value={termsAndConditions}
-                    onChange={(e) => setTermsAndConditions(e.target.value)}
-                    placeholder="Enter T&Cs..."
-                  />
-                )}
+            <div>
+              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={includeTermsAndConditions} onChange={(e) => setIncludeTermsAndConditions(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                Terms & Conditions
+              </label>
+              {includeTermsAndConditions && (
+                <textarea
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                  rows={4}
+                  value={termsAndConditions}
+                  onChange={(e) => setTermsAndConditions(e.target.value)}
+                  placeholder="Enter T&Cs..."
+                />
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT: Summary & Settings */}
+        <div className="space-y-6">
+          {/* Summary Card */}
+          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 sticky top-6">
+            <h2 className="text-lg font-bold mb-4 text-gray-800">Quote Summary</h2>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span className="font-medium text-gray-900">{displayCurrency === "USD" ? "$" : "Ksh"} {displaySubtotal}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>VAT (16%)</span>
+                <span className="font-medium text-gray-900">-</span>
+              </div>
+              <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                <span className="font-bold text-lg text-gray-900">Total</span>
+                <span className="font-bold text-xl text-[#0099ff]">{displayCurrency === "USD" ? "$" : "Ksh"} {displayGrandTotal}</span>
               </div>
             </div>
 
-          </div>
+            <button onClick={saveDocument} title="Save Document" className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
+              <FaSave /> Save Document
+            </button>
 
-          {/* RIGHT: Summary & Settings */}
-          <div className="space-y-6">
-            {/* Summary Card */}
-            <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 sticky top-6">
-              <h2 className="text-lg font-bold mb-4 text-gray-800">Quote Summary</h2>
+            <button onClick={generatePDF} title="Generate and Download PDF" className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+              <FaFilePdf /> Download
+            </button>
 
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span className="font-medium text-gray-900">{displayCurrency === "USD" ? "$" : "Ksh"} {displaySubtotal}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>VAT (16%)</span>
-                  <span className="font-medium text-gray-900">-</span>
-                </div>
-                <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
-                  <span className="font-bold text-lg text-gray-900">Total</span>
-                  <span className="font-bold text-xl text-[#0099ff]">{displayCurrency === "USD" ? "$" : "Ksh"} {displayGrandTotal}</span>
-                </div>
+            {/* Settings Toggles in Summary */}
+            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Display Currency</span>
+                <button
+                  onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
+                  title="Toggle Currency"
+                  className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
+                >
+                  <FaExchangeAlt /> {displayCurrency}
+                </button>
               </div>
 
-              <button onClick={saveDocument} title="Save Document" className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
-                <FaSave /> Save Document
-              </button>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Exchange Rate (1 USD = ? Ksh)</label>
+                <input
+                  type="number"
+                  value={usdToKshRate}
+                  onChange={(e) => setUsdToKshRate(Number(e.target.value))}
+                  className="w-full border p-2 rounded text-sm bg-gray-50"
+                />
+              </div>
 
-              <button onClick={generatePDF} title="Generate and Download PDF" className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-                <FaFilePdf /> Download
-              </button>
-
-              {/* Settings Toggles in Summary */}
-              <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Display Currency</span>
-                  <button
-                    onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
-                    title="Toggle Currency"
-                    className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
-                  >
-                    <FaExchangeAlt /> {displayCurrency}
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Exchange Rate (1 USD = ? Ksh)</label>
-                  <input
-                    type="number"
-                    value={usdToKshRate}
-                    onChange={(e) => setUsdToKshRate(Number(e.target.value))}
-                    className="w-full border p-2 rounded text-sm bg-gray-50"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Show Descriptions</span>
-                  <input type="checkbox" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} />
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Show Descriptions</span>
+                <input type="checkbox" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} />
               </div>
             </div>
           </div>
         </div>
-
       </div>
-      );
+
+    </div>
+  );
 };
 
-      export default NewInvoice;
+export default NewInvoice;
