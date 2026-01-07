@@ -84,6 +84,8 @@ const NewInvoice: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
+  const logoUrl = new URL('../assets/logo.jpg', import.meta.url).href;
+
   // --- Inventory State ---
   // Loaded from localStorage to populate the selection lists.
   const [products, setProducts] = useState<Product[]>([]);
@@ -1045,158 +1047,184 @@ const NewInvoice: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-xs">
-                    <tr>
-                      <th className="p-3">Item</th>
-                      <th className="p-3 text-center">Qty</th>
-                      <th className="p-3 text-right">Price</th>
-                      <th className="p-3 text-right">Total</th>
-                      <th className="p-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {lines.map((item, idx) => (
-                      <tr key={`${item.id}-${idx}`} className="hover:bg-gray-50 transition-colors">
-                        <td className="p-3">
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          {showDescriptions && item.description && (
-                            <div className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</div>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => decreaseQty(idx)} title="Decrease Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaMinus size={10} /></button>
-                            <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            <button onClick={() => increaseQty(idx)} title="Increase Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaPlus size={10} /></button>
-                          </div>
-                        </td>
-                        <td className="p-3 text-right">
-                          {displayCurrency === "USD"
-                            ? `$${(item.unitPrice / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                            : item.unitPrice.toLocaleString()
-                          }
-                        </td>
-                        <td className="p-3 text-right font-medium">
-                          {displayCurrency === "USD"
-                            ? `$${(item.lineTotal / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                            : item.lineTotal.toLocaleString()
-                          }
-                        </td>
-                        <td className="p-3 text-center">
-                          <button onClick={() => removeLine(idx)} title="Remove Item" className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
-                            <FaTrash />
-                          </button>
-                        </td>
+                <div id="invoice-content" className="bg-white p-8 rounded-lg shadow-lg border border-gray-100 print:shadow-none print:border-none min-h-[1000px] flex flex-col justify-between relative overflow-hidden">
+
+                  {/* Header / Brand */}
+                  <div className="flex justify-between items-start border-b border-gray-100 pb-8 mb-8 relative z-10">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-brand-50 rounded-lg">
+                        <img src={logoUrl} alt="Konsut Logo" className="h-16 w-16 object-contain" />
+                      </div>
+                      <div>
+                        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Konsut Ltd.</h2>
+                        <p className="text-sm text-gray-500 mt-1">Excellence in every interaction</p>
+                        <div className="mt-4 text-xs text-gray-500 space-y-1">
+                          <p className="flex items-center gap-2"><FaMapMarkerAlt className="text-brand-400" /> 123 Business Lane, Nairobi, KE</p>
+                          <p className="flex items-center gap-2"><FaPhone className="text-brand-400" /> +254 700 000 000</p>
+                          <p className="flex items-center gap-2"><FaEnvelope className="text-brand-400" /> info@konsut.com</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="inline-block bg-brand-50 px-4 py-2 rounded-lg border border-brand-100 mb-2">
+                        <h3 className="text-xl font-bold text-brand-700 uppercase tracking-widest">{activeDocumentType === 'quotation' ? 'Quotation' : activeDocumentType}</h3>
+                      </div>
+                      <p className="text-gray-500 font-medium">#{isEditing ? editId : 'NEW'}</p>
+                      <p className="text-sm text-gray-400 mt-1">{new Date().toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-xs">
+                      <tr>
+                        <th className="p-3">Item</th>
+                        <th className="p-3 text-center">Qty</th>
+                        <th className="p-3 text-right">Price</th>
+                        <th className="p-3 text-right">Total</th>
+                        <th className="p-3 text-center">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {lines.map((item, idx) => (
+                        <tr key={`${item.id}-${idx}`} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-3">
+                            <div className="font-medium text-gray-900">{item.name}</div>
+                            {showDescriptions && item.description && (
+                              <div className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <button onClick={() => decreaseQty(idx)} title="Decrease Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaMinus size={10} /></button>
+                              <span className="w-8 text-center font-medium">{item.quantity}</span>
+                              <button onClick={() => increaseQty(idx)} title="Increase Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaPlus size={10} /></button>
+                            </div>
+                          </td>
+                          <td className="p-3 text-right">
+                            {displayCurrency === "USD"
+                              ? `$${(item.unitPrice / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                              : item.unitPrice.toLocaleString()
+                            }
+                          </td>
+                          <td className="p-3 text-right font-medium">
+                            {displayCurrency === "USD"
+                              ? `$${(item.lineTotal / usdToKshRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                              : item.lineTotal.toLocaleString()
+                            }
+                          </td>
+                          <td className="p-3 text-center">
+                            <button onClick={() => removeLine(idx)} title="Remove Item" className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
+                              <FaTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
             )}
-          </div>
+              </div>
 
           {/* Custom Notes Section */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
-            <div>
-              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
-                <input type="checkbox" checked={includeClientResponsibilities} onChange={(e) => setIncludeClientResponsibilities(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
-                Client Responsibilities
-              </label>
-              {includeClientResponsibilities && (
-                <textarea
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
-                  rows={4}
-                  value={clientResponsibilities}
-                  onChange={(e) => setClientResponsibilities(e.target.value)}
-                  placeholder="Enter client responsibilities..."
-                />
-              )}
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
-                <input type="checkbox" checked={includeTermsAndConditions} onChange={(e) => setIncludeTermsAndConditions(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
-                Terms & Conditions
-              </label>
-              {includeTermsAndConditions && (
-                <textarea
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
-                  rows={4}
-                  value={termsAndConditions}
-                  onChange={(e) => setTermsAndConditions(e.target.value)}
-                  placeholder="Enter T&Cs..."
-                />
-              )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT: Summary & Settings */}
-        <div className="space-y-6">
-          {/* Summary Card */}
-          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 sticky top-6">
-            <h2 className="text-lg font-bold mb-4 text-gray-800">Quote Summary</h2>
-
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span className="font-medium text-gray-900">{displayCurrency === "USD" ? "$" : "Ksh"} {displaySubtotal}</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>VAT (16%)</span>
-                <span className="font-medium text-gray-900">-</span>
-              </div>
-              <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
-                <span className="font-bold text-lg text-gray-900">Total</span>
-                <span className="font-bold text-xl text-[#0099ff]">{displayCurrency === "USD" ? "$" : "Ksh"} {displayGrandTotal}</span>
-              </div>
-            </div>
-
-            <button onClick={saveDocument} title="Save Document" className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
-              <FaSave /> Save Document
-            </button>
-
-            <button onClick={generatePDF} title="Generate and Download PDF" className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-              <FaFilePdf /> Download
-            </button>
-
-            {/* Settings Toggles in Summary */}
-            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Display Currency</span>
-                <button
-                  onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
-                  title="Toggle Currency"
-                  className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
-                >
-                  <FaExchangeAlt /> {displayCurrency}
-                </button>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-6">
+              <div>
+                <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={includeClientResponsibilities} onChange={(e) => setIncludeClientResponsibilities(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                  Client Responsibilities
+                </label>
+                {includeClientResponsibilities && (
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                    rows={4}
+                    value={clientResponsibilities}
+                    onChange={(e) => setClientResponsibilities(e.target.value)}
+                    placeholder="Enter client responsibilities..."
+                  />
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Exchange Rate (1 USD = ? Ksh)</label>
-                <input
-                  type="number"
-                  value={usdToKshRate}
-                  onChange={(e) => setUsdToKshRate(Number(e.target.value))}
-                  className="w-full border p-2 rounded text-sm bg-gray-50"
-                />
+                <label className="flex items-center gap-2 font-bold text-gray-700 mb-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={includeTermsAndConditions} onChange={(e) => setIncludeTermsAndConditions(e.target.checked)} className="rounded text-brand-600 focus:ring-brand-500" />
+                  Terms & Conditions
+                </label>
+                {includeTermsAndConditions && (
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#0099ff] focus:border-transparent outline-none transition-shadow"
+                    rows={4}
+                    value={termsAndConditions}
+                    onChange={(e) => setTermsAndConditions(e.target.value)}
+                    placeholder="Enter T&Cs..."
+                  />
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT: Summary & Settings */}
+          <div className="space-y-6">
+            {/* Summary Card */}
+            <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 sticky top-6">
+              <h2 className="text-lg font-bold mb-4 text-gray-800">Quote Summary</h2>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span className="font-medium text-gray-900">{displayCurrency === "USD" ? "$" : "Ksh"} {displaySubtotal}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>VAT (16%)</span>
+                  <span className="font-medium text-gray-900">-</span>
+                </div>
+                <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                  <span className="font-bold text-lg text-gray-900">Total</span>
+                  <span className="font-bold text-xl text-[#0099ff]">{displayCurrency === "USD" ? "$" : "Ksh"} {displayGrandTotal}</span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Show Descriptions</span>
-                <input type="checkbox" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} />
+              <button onClick={saveDocument} title="Save Document" className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
+                <FaSave /> Save Document
+              </button>
+
+              <button onClick={generatePDF} title="Generate and Download PDF" className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+                <FaFilePdf /> Download
+              </button>
+
+              {/* Settings Toggles in Summary */}
+              <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Display Currency</span>
+                  <button
+                    onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
+                    title="Toggle Currency"
+                    className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
+                  >
+                    <FaExchangeAlt /> {displayCurrency}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Exchange Rate (1 USD = ? Ksh)</label>
+                  <input
+                    type="number"
+                    value={usdToKshRate}
+                    onChange={(e) => setUsdToKshRate(Number(e.target.value))}
+                    className="w-full border p-2 rounded text-sm bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Show Descriptions</span>
+                  <input type="checkbox" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-    </div>
-  );
+      </div>
+      );
 };
 
-export default NewInvoice;
+      export default NewInvoice;
