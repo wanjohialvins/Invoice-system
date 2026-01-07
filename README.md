@@ -39,7 +39,7 @@ A professional, feature-rich invoice management system built with React, TypeScr
 - **Purchase History**: View all invoices associated with each client
 - **Client Statistics**: Track total spent, invoice count, and last purchase date
 - **CSV Export**: Export client data with statistics
-- **Seed & Delete**: Populate test data or perform hard resets
+- **Seed & Delete**: Populate test data or perform hard resets.
 - **Multi-source Tracking**: Distinguish between manually added clients and invoice-generated entries
 
 ### Analytics & Reporting
