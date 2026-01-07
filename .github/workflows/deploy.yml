@@ -33,4 +33,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: ./ # FTP user is already inside the correct folder
-          dangerous-clean-slate: true # Be careful! This deletes files on server not present in local
+          dangerous-clean-slate: false # Changed to false to prevent deleting other files on server
