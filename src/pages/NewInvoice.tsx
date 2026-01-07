@@ -1053,29 +1053,7 @@ const NewInvoice: React.FC = () => {
                 <div id="invoice-content" className="bg-white p-8 rounded-lg shadow-lg border border-gray-100 print:shadow-none print:border-none min-h-[1000px] flex flex-col justify-between relative overflow-hidden">
 
                   {/* Header / Brand */}
-                  <div className="flex justify-between items-start border-b border-gray-100 pb-8 mb-8 relative z-10">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-brand-50 rounded-lg">
-                        <img src={logoUrl} alt="Konsut Logo" className="h-16 w-16 object-contain" />
-                      </div>
-                      <div>
-                        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Konsut Ltd.</h2>
-                        <p className="text-sm text-gray-500 mt-1">Excellence in every interaction</p>
-                        <div className="mt-4 text-xs text-gray-500 space-y-1">
-                          <p className="flex items-center gap-2"><FaMapMarkerAlt className="text-brand-400" /> 123 Business Lane, Nairobi, KE</p>
-                          <p className="flex items-center gap-2"><FaPhone className="text-brand-400" /> +254 700 000 000</p>
-                          <p className="flex items-center gap-2"><FaEnvelope className="text-brand-400" /> info@konsut.com</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="inline-block bg-brand-50 px-4 py-2 rounded-lg border border-brand-100 mb-2">
-                        <h3 className="text-xl font-bold text-brand-700 uppercase tracking-widest">{activeDocumentType === 'quotation' ? 'Quotation' : activeDocumentType}</h3>
-                      </div>
-                      <p className="text-gray-500 font-medium">#{isEditing ? editId : 'NEW'}</p>
-                      <p className="text-sm text-gray-400 mt-1">{new Date().toLocaleDateString()}</p>
-                    </div>
-                  </div>
+                  {/* Header Removed as per user request */}
                   <table className="w-full text-sm text-left">
                     <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-xs">
                       <tr>
