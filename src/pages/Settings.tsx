@@ -448,6 +448,7 @@ const Settings: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={resetToDefaults}
+            title="Reset all settings to default"
             className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
           >
             <FaUndo size={14} /> Reset Defaults
@@ -455,6 +456,7 @@ const Settings: React.FC = () => {
           <button
             onClick={saveSettings}
             disabled={saveStatus === 'saving'}
+            title="Save all changes"
             className={`px-6 py-2 bg-[#0099ff] hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${saveStatus === 'saving' ? 'opacity-75 cursor-wait' : ''}`}
           >
             {saveStatus === 'saving' ? <FaSync className="animate-spin" /> : <FaSave />}
@@ -484,6 +486,7 @@ const Settings: React.FC = () => {
                     ? 'bg-blue-50 dark:bg-midnight-800 text-blue-700 dark:text-brand-400 shadow-sm ring-1 ring-blue-200 dark:ring-midnight-700'
                     : 'text-gray-600 dark:text-midnight-text-secondary hover:bg-white dark:hover:bg-midnight-800 hover:text-gray-900 dark:hover:text-midnight-text-primary'
                     }`}
+                  title={tab.label}
                 >
                   <div className="flex items-center gap-3">
                     <tab.icon className={activeTab === tab.id ? "text-brand-500" : "text-gray-400 dark:text-gray-600"} size={18} />
@@ -715,6 +718,7 @@ const Settings: React.FC = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={handleBackup}
+                          title="Create and Download Backup"
                           className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md"
                         >
                           <FaDownload size={14} /> Backup All Data
@@ -722,6 +726,7 @@ const Settings: React.FC = () => {
                         <button
                           onClick={handleRestore}
                           disabled={restoring}
+                          title="Restore Data from Backup File"
                           className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
                         >
                           {restoring ? <FaSync className="animate-spin" size={14} /> : <FaUpload size={14} />}
@@ -764,6 +769,7 @@ const Settings: React.FC = () => {
                           </p>
                           <button
                             onClick={handleClearAllData}
+                            title="Permanently Delete All Data"
                             className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                           >
                             <FaTrash size={14} /> Clear All App Data

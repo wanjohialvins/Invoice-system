@@ -834,10 +834,10 @@ const NewInvoice: React.FC = () => {
 
           {/* Mobile Action Buttons (Visible only on mobile) */}
           <div className="flex md:hidden items-center gap-2">
-            <button onClick={saveDocument} className="p-2 rounded-lg bg-green-600 text-white shadow-sm">
+            <button onClick={saveDocument} title="Save Draft" className="p-2 rounded-lg bg-green-600 text-white shadow-sm">
               <FaSave />
             </button>
-            <button onClick={generatePDF} className="p-2 rounded-lg bg-[#0099ff] text-white shadow-sm">
+            <button onClick={generatePDF} title="Download PDF" className="p-2 rounded-lg bg-[#0099ff] text-white shadow-sm">
               <FaFilePdf />
             </button>
           </div>
@@ -858,21 +858,22 @@ const NewInvoice: React.FC = () => {
           </div>
 
           {/* Desktop Buttons */}
+          {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-2">
             <>
-              <button onClick={handleClearStock} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+              <button onClick={handleClearStock} title="Clear all stock items" className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
                 <FaEraser size={14} /> Clear Stock
               </button>
-              <button onClick={seedSampleStock} className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+              <button onClick={seedSampleStock} title="Add sample stock items" className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
                 <FaSeedling size={14} /> Seed Stock
               </button>
             </>
 
-            <button onClick={saveDocument} className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
+            <button onClick={saveDocument} title="Save Document (Ctrl+S)" className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
               <FaSave size={14} /> Save
             </button>
 
-            <button onClick={generatePDF} className="px-3 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
+            <button onClick={generatePDF} title="Generate and Download PDF" className="px-3 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
               <FaFilePdf size={14} /> Download
             </button>
 
@@ -880,6 +881,7 @@ const NewInvoice: React.FC = () => {
             {activeDocumentType === 'quotation' && isEditing && (
               <button
                 onClick={() => handleConvert('proforma')}
+                title="Convert to Proforma Invoice"
                 className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
               >
                 <FaExchangeAlt size={14} /> Convert
@@ -889,6 +891,7 @@ const NewInvoice: React.FC = () => {
             {activeDocumentType === 'proforma' && isEditing && (
               <button
                 onClick={() => handleConvert('invoice')}
+                title="Convert to Final Invoice"
                 className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md"
               >
                 <FaExchangeAlt size={14} /> Convert
@@ -970,13 +973,13 @@ const NewInvoice: React.FC = () => {
 
             {/* Category Tabs */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              <button onClick={() => setActiveCategory("products")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "products" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              <button onClick={() => setActiveCategory("products")} title="Browse Products" className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "products" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                 <FiBox /> Products
               </button>
-              <button onClick={() => setActiveCategory("mobilization")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "mobilization" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              <button onClick={() => setActiveCategory("mobilization")} title="Browse Mobilization Costs" className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "mobilization" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                 <FiTruck /> Mobilization
               </button>
-              <button onClick={() => setActiveCategory("services")} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "services" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              <button onClick={() => setActiveCategory("services")} title="Browse Services" className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${activeCategory === "services" ? "bg-[#0099ff] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                 <FiTool /> Services
               </button>
             </div>
@@ -1012,6 +1015,7 @@ const NewInvoice: React.FC = () => {
 
               <button
                 onClick={() => handleAddSelected(activeCategory)}
+                title="Add Selected Item"
                 className="w-full md:w-auto px-6 py-2.5 bg-[#0099ff] hover:bg-blue-600 text-white font-medium rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
               >
                 <FaPlus /> Add
@@ -1058,9 +1062,9 @@ const NewInvoice: React.FC = () => {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => decreaseQty(idx)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaMinus size={10} /></button>
+                            <button onClick={() => decreaseQty(idx)} title="Decrease Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaMinus size={10} /></button>
                             <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            <button onClick={() => increaseQty(idx)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaPlus size={10} /></button>
+                            <button onClick={() => increaseQty(idx)} title="Increase Quantity" className="p-1 hover:bg-gray-200 rounded text-gray-500"><FaPlus size={10} /></button>
                           </div>
                         </td>
                         <td className="p-3 text-right">
@@ -1076,7 +1080,7 @@ const NewInvoice: React.FC = () => {
                           }
                         </td>
                         <td className="p-3 text-center">
-                          <button onClick={() => removeLine(idx)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
+                          <button onClick={() => removeLine(idx)} title="Remove Item" className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
                             <FaTrash />
                           </button>
                         </td>
@@ -1146,11 +1150,11 @@ const NewInvoice: React.FC = () => {
               </div>
             </div>
 
-            <button onClick={saveDocument} className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
+            <button onClick={saveDocument} title="Save Document" className="w-full py-3 bg-[#0099ff] hover:bg-blue-600 text-white font-bold rounded-lg shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 mb-3">
               <FaSave /> Save Document
             </button>
 
-            <button onClick={generatePDF} className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+            <button onClick={generatePDF} title="Generate and Download PDF" className="w-full py-3 bg-white border border-[#0099ff] text-[#0099ff] font-bold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
               <FaFilePdf /> Download
             </button>
 
@@ -1161,6 +1165,7 @@ const NewInvoice: React.FC = () => {
                 <span className="text-sm text-gray-600">Display Currency</span>
                 <button
                   onClick={() => setDisplayCurrency(c => c === "Ksh" ? "USD" : "Ksh")}
+                  title="Toggle Currency"
                   className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-1"
                 >
                   <FaExchangeAlt /> {displayCurrency}

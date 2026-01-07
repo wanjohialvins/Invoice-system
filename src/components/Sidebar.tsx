@@ -51,6 +51,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             to="/"
             end
             onClick={isMobile ? onClose : undefined}
+            title="Go to Dashboard"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isActive
                 ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
@@ -69,6 +70,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/new-invoice"
             onClick={isMobile ? onClose : undefined}
+            title="Create a new Order or Invoice"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
@@ -81,6 +83,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/invoices"
             onClick={isMobile ? onClose : undefined}
+            title="View all Orders and Invoices"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
@@ -93,6 +96,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/clients"
             onClick={isMobile ? onClose : undefined}
+            title="Manage Clients database"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
@@ -105,6 +109,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/stock"
             onClick={isMobile ? onClose : undefined}
+            title="Manage Inventory and Services"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
@@ -117,6 +122,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/analytics"
             onClick={isMobile ? onClose : undefined}
+            title="View Business Analytics"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
@@ -133,6 +139,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <NavLink
             to="/settings"
             onClick={isMobile ? onClose : undefined}
+            title="Configure System Settings"
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
                 ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"

@@ -388,13 +388,13 @@ const Clients: React.FC = () => {
               </button>
             </div>
 
-            <button onClick={() => downloadCSV(clients, clientStats)} className="flex items-center gap-2 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+            <button onClick={() => downloadCSV(clients, clientStats)} title="Export Clients to CSV" className="flex items-center gap-2 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
               <FaDownload /> <span className="hidden md:inline">Export</span>
             </button>
-            <button onClick={syncClientsFromInvoices} disabled={syncing} className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
+            <button onClick={syncClientsFromInvoices} disabled={syncing} title="Sync Clients from Invoices" className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
               <FaSync className={syncing ? "animate-spin" : ""} /> Sync
             </button>
-            <button onClick={() => { setEditingClient(null); setFormData({ name: "", phone: "", email: "", address: "", company: "", kraPin: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#0099ff] text-white rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 font-medium">
+            <button onClick={() => { setEditingClient(null); setFormData({ name: "", phone: "", email: "", address: "", company: "", kraPin: "" }); setShowForm(true); }} title="Add New Client" className="flex items-center gap-2 px-4 py-2 bg-[#0099ff] text-white rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 font-medium">
               <FaPlus /> <span className="hidden md:inline">Add Client</span><span className="md:hidden">Add</span>
             </button>
           </div>

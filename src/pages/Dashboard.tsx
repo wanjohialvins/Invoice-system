@@ -179,6 +179,7 @@ const Dashboard: React.FC = () => {
           </div>
           <Link
             to="/new-invoice"
+            title="Create a new Order"
             className="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-500 text-white rounded-xl shadow-lg shadow-brand-500/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-medium btn-liquid overflow-hidden group"
           >
             <FaPlus className="group-hover:rotate-90 transition-transform duration-300" />
@@ -221,7 +222,7 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-lg font-bold text-slate-900 dark:text-midnight-text-primary flex items-center gap-2">
                   <FaChartLine className="text-brand-500" /> Revenue Trends
                 </h2>
-                <select className="text-sm bg-slate-50 dark:bg-midnight-950 border-none rounded-lg text-slate-600 dark:text-midnight-text-secondary focus:ring-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-midnight-700 transition-colors px-3 py-1">
+                <select title="Filter revenue period" className="text-sm bg-slate-50 dark:bg-midnight-950 border-none rounded-lg text-slate-600 dark:text-midnight-text-secondary focus:ring-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-midnight-700 transition-colors px-3 py-1">
                   <option>Last 6 Months</option>
                 </select>
               </div>
@@ -310,15 +311,15 @@ const Dashboard: React.FC = () => {
             <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg jarvis-card">
               <h2 className="text-lg font-bold mb-4">Quick Command</h2>
               <div className="space-y-3">
-                <Link to="/new-invoice" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                <Link to="/new-invoice" title="Go to New Order page" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
                   <span className="text-sm font-medium">Create New Order</span>
                   <FaPlus className="text-slate-400 group-hover:text-white transition-colors" />
                 </Link>
-                <Link to="/stock" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                <Link to="/stock" title="Go to Stock Management" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
                   <span className="text-sm font-medium">Manage Inventory</span>
                   <FaBoxOpen className="text-slate-400 group-hover:text-white transition-colors" />
                 </Link>
-                <Link to="/invoices" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
+                <Link to="/invoices" title="View all Orders" className="flex items-center justify-between p-3 rounded-xl bg-slate-800 hover:bg-brand-600 transition-all group">
                   <span className="text-sm font-medium">View All Orders</span>
                   <FaEye className="text-slate-400 group-hover:text-white transition-colors" />
                 </Link>
