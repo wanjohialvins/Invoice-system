@@ -610,33 +610,72 @@ const Stock: React.FC = () => {
       <div className="border rounded bg-white dark:bg-midnight-800 p-4 mb-6 shadow-sm dark:border-midnight-700">
         <h2 className="text-lg font-semibold mb-2">{editingId ? "Edit Item" : "Add Item"} • {activeCategory}</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddOrUpdate();
+          }}
+          className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+        >
           <div className="md:col-span-2">
             <label className="block text-sm mb-1">Name</label>
-            <input value={formName} onChange={(e) => setFormName(e.target.value)} className="border px-2 py-1 rounded w-full" placeholder="Item name" />
+            <input
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="border px-2 py-1 rounded w-full"
+              placeholder="Item name"
+              required // HTML5 validation help
+            />
           </div>
 
           <div>
             <label className="block text-sm mb-1">Quantity</label>
-            <input type="number" min={1} value={formQty} onChange={(e) => setFormQty(Number(e.target.value || 1))} className="border px-2 py-1 rounded w-full" />
+            <input
+              type="number"
+              min={1}
+              value={formQty}
+              onChange={(e) => setFormQty(Number(e.target.value || 1))}
+              className="border px-2 py-1 rounded w-full"
+            />
           </div>
 
           <div>
             <label className="block text-sm mb-1">Price (Ksh)</label>
-            <input type="number" min={0} value={formPriceKsh} onChange={(e) => onKshChangeInForm(Number(e.target.value || 0))} className="border px-2 py-1 rounded w-full" />
+            <input
+              type="number"
+              min={0}
+              value={formPriceKsh}
+              onChange={(e) => onKshChangeInForm(Number(e.target.value || 0))}
+              className="border px-2 py-1 rounded w-full"
+            />
           </div>
 
           <div>
             <label className="block text-sm mb-1">Price (USD)</label>
-            <input type="number" min={0} value={formPriceUSD} onChange={(e) => onUsdChangeInForm(Number(e.target.value || 0))} className="border px-2 py-1 rounded w-full" />
+            <input
+              type="number"
+              min={0}
+              value={formPriceUSD}
+              onChange={(e) => onUsdChangeInForm(Number(e.target.value || 0))}
+              className="border px-2 py-1 rounded w-full"
+            />
           </div>
 
           <div className="flex gap-2">
-            <button title={editingId ? "Update item" : "Add item"} onClick={handleAddOrUpdate} className="p-2 rounded bg-brand-600 hover:bg-brand-700 text-white transition-colors">
+            <button
+              type="submit"
+              title={editingId ? "Update item" : "Add item"}
+              className="p-2 rounded bg-brand-600 hover:bg-brand-700 text-white transition-colors"
+            >
               <FaPlus />
             </button>
 
-            <button title="Reset form" onClick={() => { setEditingId(null); setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormDescription(""); }} className="p-2 rounded bg-gray-200 text-gray-800">
+            <button
+              type="button"
+              title="Reset form"
+              onClick={() => { setEditingId(null); setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormDescription(""); }}
+              className="p-2 rounded bg-gray-200 text-gray-800"
+            >
               <FaTrash />
             </button>
           </div>
@@ -645,10 +684,15 @@ const Stock: React.FC = () => {
           {showDescriptions && (
             <div className="md:col-span-6">
               <label className="block text-sm mb-1">Description (optional)</label>
-              <textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} rows={3} className="border px-2 py-1 rounded w-full" />
+              <textarea
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                rows={3}
+                className="border px-2 py-1 rounded w-full"
+              />
             </div>
           )}
-        </div>
+        </form>
       </div>
 
       {/* Search */}
