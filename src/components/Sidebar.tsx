@@ -9,6 +9,9 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const isMobile = useIsMobile();
+  // Import images to ensure they work in production/build
+  const logoUrl = new URL('../assets/logo.jpg', import.meta.url).href;
+  const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
 
   return (
     <aside
@@ -23,7 +26,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       <div className="h-28 flex items-center justify-center px-4 border-b border-slate-800 dark:border-midnight-700 bg-slate-950 dark:bg-midnight-950">
         <div className="flex items-center group cursor-pointer hover:scale-105 transition-transform duration-200">
           <img
-            src="/src/assets/logo.jpg"
+            src={logoUrl}
             alt="Konsut Logo"
             className="h-20 w-auto object-contain rounded-md shadow-lg shadow-black/20"
           />
@@ -159,7 +162,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-800 dark:border-midnight-700">
           <img
-            src="/src/assets/avatar_new.jpg"
+            src={avatarUrl}
             alt="User Avatar"
             className="w-10 h-10 rounded-full object-cover border-2 border-brand-500"
           />
