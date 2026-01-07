@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile } from "../hooks/useMediaQuery";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,7 +19,7 @@ export default function Layout() {
   };
 
   // Melting Transition Variants
-  const meltVariants = {
+  const meltVariants: Variants = {
     initial: {
       y: 0,
       scale: 1,
