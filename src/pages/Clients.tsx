@@ -41,6 +41,7 @@ import {
   FaExclamationTriangle
 } from "react-icons/fa";
 import logo from "../assets/logo.jpg";
+import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useDebounce, useKeyboardShortcut } from "../hooks/useUtils";
 import { EmptyState, LoadingSpinner } from "../components/shared/UIComponents";
@@ -143,6 +144,7 @@ const downloadCSV = (clients: Client[], statsMap: Record<string, any>) => {
 
 const Clients: React.FC = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -379,14 +381,17 @@ const Clients: React.FC = () => {
 
           <div className="flex flex-wrap gap-2 justify-end">
             {/* Data Tools */}
-            <div className="flex gap-2 mr-2 border-r pr-2 border-gray-300">
-              <button onClick={deleteAllClients} title="Delete All Clients" className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
-                <FaEraser /> <span className="hidden md:inline">Clear</span>
-              </button>
-              <button onClick={seedClients} title="Seed Sample Clients" className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
-                <FaSeedling /> <span className="hidden md:inline">Seed</span>
-              </button>
-            </div>
+            {/* Data Tools - ADMIN ONLY */}
+            {user?.role === 'admin' && (
+              <div className="flex gap-2 mr-2 border-l pl-2 border-gray-300">
+                <button onClick={deleteAllClients} title="Delete All Clients" className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
+                  <FaEraser /> <span className="hidden md:inline">Clear</span>
+                </button>
+                <button onClick={seedClients} title="Seed Sample Clients" className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
+                  <FaSeedling /> <span className="hidden md:inline">Seed</span>
+                </button>
+              </div>
+            )}
 
             <button onClick={() => downloadCSV(clients, clientStats)} title="Export Clients to CSV" className="flex items-center gap-2 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
               <FaDownload /> <span className="hidden md:inline">Export</span>

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiFileText, FiUsers, FiSettings, FiPackage, FiBarChart2, FiX } from "react-icons/fi";
+import { FiHome, FiFileText, FiUsers, FiSettings, FiPackage, FiBarChart2, FiX, FiLogOut } from "react-icons/fi";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -9,9 +10,32 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
   // Import images to ensure they work in production/build
   const logoUrl = new URL('../assets/logo.jpg', import.meta.url).href;
   const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
+
+  // Permissions Helper
+  const isAllowed = (path: string) => {
+    // If no permissions defined, allow all (Admin/CEO)
+    if (!user?.permissions) return true;
+    return user.permissions.includes(path);
+  };
+
+  const getLinkClasses = (path: string, isActive: boolean) => {
+    const allowed = isAllowed(path);
+    const baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden";
+
+    if (!allowed) {
+      return `${baseClasses} opacity-30 cursor-not-allowed grayscale pointer-events-none`;
+    }
+
+    if (isActive) {
+      return `${baseClasses} bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1`;
+    }
+
+    return `${baseClasses} text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white`;
+  };
 
   return (
     <aside
@@ -52,100 +76,61 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             end
             onClick={isMobile ? onClose : undefined}
             title="Go to Dashboard"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isActive
-                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
-                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/', isActive)}
           >
-            {({ isActive }) => (
-              <>
-                {isActive && <div className="absolute inset-0 bg-brand-500 dark:bg-midnight-accent opacity-20 animate-pulse"></div>}
-                <FiHome className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                <span className="relative z-10">Dashboard</span>
-              </>
-            )}
+            <FiHome className="group-hover:scale-110 transition-transform" /> Dashboard
           </NavLink>
+
           <NavLink
             to="/new-invoice"
             onClick={isMobile ? onClose : undefined}
             title="Create a new Order or Invoice"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
-                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/new-invoice', isActive)}
           >
-            <FiFileText className="group-hover:rotate-12 transition-transform duration-300" /> New Order
+            <FiFileText className="group-hover:scale-110 transition-transform" /> New Order
           </NavLink>
+
           <NavLink
             to="/invoices"
             onClick={isMobile ? onClose : undefined}
             title="View all Orders and Invoices"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
-                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/invoices', isActive)}
           >
-            <FiFileText className="group-hover:translate-x-1 transition-transform duration-300" /> All Orders
+            <FiBarChart2 className="group-hover:scale-110 transition-transform" /> All Orders
           </NavLink>
+
           <NavLink
             to="/clients"
             onClick={isMobile ? onClose : undefined}
             title="Manage Clients database"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
-                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/clients', isActive)}
           >
-            <FiUsers className="group-hover:scale-110 transition-transform duration-300" /> Clients
+            <FiUsers className="group-hover:scale-110 transition-transform" /> Clients
           </NavLink>
+
           <NavLink
             to="/stock"
             onClick={isMobile ? onClose : undefined}
             title="Manage Inventory and Services"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/stock', isActive)}
           >
-            <FiPackage className="group-hover:rotate-12 transition-transform duration-300" /> Stock
+            <FiPackage className="group-hover:scale-110 transition-transform" /> Stock
           </NavLink>
+
           <NavLink
             to="/analytics"
             onClick={isMobile ? onClose : undefined}
             title="View Business Analytics"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/analytics', isActive)}
           >
-            <FiBarChart2 className="group-hover:scale-110 transition-transform duration-300" /> Analytics
+            <FiBarChart2 className="group-hover:scale-110 transition-transform" /> Analytics
           </NavLink>
-        </nav>
 
-        <div className="mt-6 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">System</div>
-        <nav className="space-y-1">
           <NavLink
             to="/settings"
             onClick={isMobile ? onClose : undefined}
             title="Configure System Settings"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`
-            }
+            className={({ isActive }) => getLinkClasses('/settings', isActive)}
           >
             <FiSettings className="group-hover:rotate-90 transition-transform duration-500" /> Settings
           </NavLink>
@@ -156,27 +141,28 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <NavLink
           to="/settings"
           onClick={isMobile ? onClose : undefined}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group w-full ${isActive
-              ? "bg-slate-800 dark:bg-midnight-800 text-white"
-              : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
-            }`
-          }
+          className={({ isActive }) => getLinkClasses('/settings', isActive) + " w-full"}
         >
           <FiSettings className="group-hover:rotate-90 transition-transform duration-500" />
           <span>Data & Settings</span>
         </NavLink>
-
-        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-800 dark:border-midnight-700">
+        <div className="flex items-center gap-3 pt-2">
           <img
-            src={avatarUrl}
-            alt="User Avatar"
-            className="w-10 h-10 rounded-full object-cover border-2 border-brand-500"
+            src={user?.avatar || avatarUrl}
+            alt="User"
+            className="h-10 w-10 rounded-full border-2 border-slate-700 dark:border-midnight-accent/30 object-contain bg-white"
           />
-          <div>
-            <div className="text-sm font-medium text-white dark:text-midnight-text-primary">Eragon Devs</div>
-            <div className="text-xs text-slate-500 dark:text-midnight-text-secondary">Admin</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">{user?.name || "Guest User"}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 truncate capitalize">{user?.displayRole || user?.role || "Viewer"}</p>
           </div>
+          <button
+            onClick={logout}
+            title="Log Out"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <FiLogOut size={18} />
+          </button>
         </div>
       </div>
     </aside>

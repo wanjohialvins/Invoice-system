@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useTheme } from "../hooks/useTheme";
+import { useAuth } from "../contexts/AuthContext";
 import {
   FaSave,
   FaUndo,
@@ -35,7 +36,9 @@ import {
   FaDownload,
   FaUpload,
   FaDatabase,
-  FaFolder
+  FaFolder,
+  FaSeedling,
+  FaEraser,
 } from "react-icons/fa";
 import logo from "../assets/logo.jpg";
 import {
@@ -46,6 +49,7 @@ import {
   updateLastBackupDate,
   getBrowserStorageInfo
 } from "../utils/backupManager";
+import { seedWorkload, clearSeedData } from "../utils/devSeeder";
 
 // --- Types & Interfaces ---
 
@@ -176,6 +180,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 // --- Components ---
 
 const Settings: React.FC = () => {
+  const { user } = useAuth();
   // State
   const [activeTab, setActiveTab] = useState("company");
   const [company, setCompany] = useState<CompanyInfo>(DEFAULT_COMPANY);
@@ -776,6 +781,52 @@ const Settings: React.FC = () => {
                           </button>
                         </div>
                       </div>
+
+                      {/* Developer Zone - ADMIN ONLY */}
+                      {user?.role === 'admin' && (
+                        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 mt-6">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                              <FaUserCog size={24} />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-indigo-900">Developer Zone</h4>
+                              <p className="text-sm text-indigo-700 mt-1 mb-4">
+                                Tools for testing system behavior.
+                              </p>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <button
+                                  onClick={() => {
+                                    if (confirm("Generate random data (30-day workload)?")) {
+                                      const result = seedWorkload();
+                                      setSaveStatus(result.success ? "saved" : "error");
+                                      setSaveMessage(result.message);
+                                      setTimeout(() => window.location.reload(), 1500);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                  <FaSeedling size={14} /> Simulate 30-Day Workload
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm("Remove test data?")) {
+                                      const result = clearSeedData();
+                                      setSaveStatus(result.success ? "saved" : "error");
+                                      setSaveMessage(result.message);
+                                      setTimeout(() => window.location.reload(), 1500);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                  <FaEraser size={14} /> Clear Test Data
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

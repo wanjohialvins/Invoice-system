@@ -11,9 +11,13 @@ import { useTheme } from "./hooks/useTheme";
 import { ToastProvider } from "./contexts/ToastContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
+import { AuthProvider } from "./contexts/AuthContext";
+import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 /**
  * Main App Component
- * Initializes theme, provides global context (Toast, Error Boundary)
+ * Initializes theme, provides global context (Toast, Error, Auth)
  * and sets up routing for all pages
  */
 const App = () => {
@@ -22,21 +26,31 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="new-invoice" element={<NewInvoice />} />
-              <Route path="invoices" element={<Invoices />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="stock" element={<Stock />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="analytics" element={<Analytics />} />
-            </Route>
-          </Routes>
-        </Router>
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <Router>
+            <Routes>
+              {/* Public Route */}
+              <Route path="/login" element={<Login />} />
+
+              {/* Protected Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Dashboard />} />
+                <Route path="new-invoice" element={<NewInvoice />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route path="clients" element={<Clients />} />
+                <Route path="stock" element={<Stock />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="analytics" element={<Analytics />} />
+              </Route>
+            </Routes>
+          </Router>
+        </ToastProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 };

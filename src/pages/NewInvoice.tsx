@@ -32,6 +32,7 @@ import {
   FaEraser,
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
+import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 
 /* ============================
@@ -81,6 +82,7 @@ const useToasts = () => {
    ============================ */
 const NewInvoice: React.FC = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   // --- Inventory State ---
   // Loaded from localStorage to populate the selection lists.
@@ -798,7 +800,7 @@ const NewInvoice: React.FC = () => {
       arr.unshift(newInvoice);
       localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
 
-      pushToast(`Converted to ${targetType}`, "success");
+      showToast("success", `Converted to ${targetType}`);
 
       // Navigate to new document
       setTimeout(() => {
@@ -808,7 +810,7 @@ const NewInvoice: React.FC = () => {
 
     } catch (e) {
       console.error("Conversion failed:", e);
-      pushToast("Conversion failed", "error");
+      showToast("error", "Conversion failed");
     }
   };
 
@@ -858,16 +860,18 @@ const NewInvoice: React.FC = () => {
           </div>
 
           {/* Desktop Buttons */}
-          {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-2">
-            <>
-              <button onClick={handleClearStock} title="Clear all stock items" className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
-                <FaEraser size={14} /> Clear Stock
-              </button>
-              <button onClick={seedSampleStock} title="Add sample stock items" className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
-                <FaSeedling size={14} /> Seed Stock
-              </button>
-            </>
+            {/* ADMIN ONLY: Stock Tools */}
+            {user?.role === 'admin' && (
+              <>
+                <button onClick={handleClearStock} title="Clear all stock items" className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+                  <FaEraser size={14} /> Clear Stock
+                </button>
+                <button onClick={seedSampleStock} title="Add sample stock items" className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+                  <FaSeedling size={14} /> Seed Stock
+                </button>
+              </>
+            )}
 
             <button onClick={saveDocument} title="Save Document (Ctrl+S)" className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
               <FaSave size={14} /> Save

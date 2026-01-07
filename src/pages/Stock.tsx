@@ -29,7 +29,8 @@ import {
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { STORAGE_KEYS, DEFAULT_RATES } from "../constants";
 import { useToast } from "../contexts/ToastContext";
-
+import { useAuth } from "../contexts/AuthContext";
+import { useKeyboardShortcut } from "../hooks/useUtils";
 /* -------------------------
    Types & LocalStorage keys
    ------------------------- */
@@ -177,6 +178,7 @@ const getInitialCurrencyRate = (): number => {
    ------------------------- */
 const Stock: React.FC = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   /* ---------------------
      State Management
@@ -545,13 +547,18 @@ const Stock: React.FC = () => {
             <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
           </label>
 
-          <button title="Seed sample stock" onClick={seedSample} className="p-2.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-brand-600 hover:border-brand-200 transition-all shadow-sm" aria-label="Seed sample">
-            <FaPlus />
-          </button>
+          {/* ADMIN ONLY: Seed & Clear */}
+          {user?.role === 'admin' && (
+            <>
+              <button title="Seed sample stock" onClick={seedSample} className="p-2.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-brand-600 hover:border-brand-200 transition-all shadow-sm" aria-label="Seed sample">
+                <FaPlus />
+              </button>
 
-          <button title="Clear All Data" onClick={handleClearAll} className="p-2.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all shadow-sm" aria-label="Clear all">
-            <FaBroom />
-          </button>
+              <button title="Clear All Data" onClick={handleClearAll} className="p-2.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all shadow-sm" aria-label="Clear all">
+                <FaBroom />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
