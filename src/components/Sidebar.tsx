@@ -138,15 +138,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       </div>
 
       <div className="mt-auto p-4 border-t border-slate-800 dark:border-midnight-700 bg-slate-950/50 dark:bg-midnight-900/50">
-        <NavLink
-          to="/settings"
-          onClick={isMobile ? onClose : undefined}
-          className={({ isActive }) => getLinkClasses('/settings', isActive) + " w-full"}
-        >
-          <FiSettings className="group-hover:rotate-90 transition-transform duration-500" />
-          <span>Data & Settings</span>
-        </NavLink>
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3">
           <img
             src={user?.avatar || avatarUrl}
             alt="User"
