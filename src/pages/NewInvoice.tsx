@@ -29,6 +29,7 @@ import {
   FaEyeSlash,
   FaSeedling,
   FaSpinner,
+  FaEraser,
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { useToast } from "../contexts/ToastContext";
@@ -712,6 +713,18 @@ const NewInvoice: React.FC = () => {
   };
 
   /* ----------------------------
+     Handle Clear Stock
+     ---------------------------- */
+  const handleClearStock = () => {
+    if (!confirm("Clear ALL stock items? This cannot be undone.")) return;
+    localStorage.removeItem(STOCK_KEY);
+    setProducts([]);
+    setMobilization([]);
+    setServices([]);
+    pushToast("Stock data cleared", "info");
+  };
+
+  /* ----------------------------
      Calculations for UI Display
      ---------------------------- */
   const { subtotal, grandTotal } = useMemo(() => {
@@ -847,11 +860,11 @@ const NewInvoice: React.FC = () => {
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-2">
             <>
-              <button onClick={clearData} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
-                <FaTrash size={14} /> Clear
+              <button onClick={handleClearStock} className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
+                <FaEraser size={14} /> Clear Stock
               </button>
               <button onClick={seedSampleStock} className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm">
-                <FaSeedling size={14} /> Seed
+                <FaSeedling size={14} /> Seed Stock
               </button>
             </>
 
@@ -907,7 +920,7 @@ const NewInvoice: React.FC = () => {
                 className={`border p-2 rounded ${validationErrors.customerName ? "border-red-500" : "border-gray-300"}`}
               />
               <input
-                placeholder="Phone Number *"
+                placeholder="Phone Number"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 className={`border p-2 rounded ${validationErrors.customerPhone ? "border-red-500" : "border-gray-300"}`}
