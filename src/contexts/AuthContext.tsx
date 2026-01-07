@@ -30,7 +30,7 @@ const salesAvatarUrl = new URL('../assets/avatar_sales.png', import.meta.url).hr
 // Hardcoded credentials as requested
 // SECURITY WARNING: This is for demonstration/local use only.
 const CREDENTIALS = {
-    ADMIN: { username: 'eragondevs', password: 'Drottastar21', name: 'Eragon Deves', role: 'admin' as UserRole, displayRole: 'Administrator' },
+    ADMIN: { username: 'eragondevs', password: 'Drottastar21', name: 'Eragondevs', role: 'admin' as UserRole, displayRole: 'Administrator' },
     USER: { username: 'konsut', password: 'konsut26', name: 'Konsut', role: 'user' as UserRole, displayRole: 'CEO', avatar: logoUrl },
     DATA_ENTRY: {
         username: 'Data entry',
