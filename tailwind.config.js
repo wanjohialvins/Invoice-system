@@ -8,10 +8,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        softgray: "#f8fafc", // Lighter, cleaner gray
-        accentblue: "#0099ff", // Vibrant Brand Blue from Logo
+        softgray: "#f8fafc",
+        accentblue: "#0099ff",
+        // Midnight Shadows Palette
+        midnight: {
+          950: "#1A1A2E", // Main Background (Deepest Navy)
+          900: "#16213E", // Sidebar / Header (Dark Blue)
+          800: "#0F3460", // Cards / Panels (Blue 2)
+          700: "#243b55", // Borders (Computed, or use 800 lighten)
+          text: {
+            primary: "#F9F9F9", // Crisp White
+            secondary: "#B0B0B0", // Soft Gray (Provided previously, keeping for hierarchy)
+            muted: "#6B7280"
+          },
+          accent: "#E94560" // Vibrant Red
+        },
         brand: {
-          DEFAULT: "#0099ff", // The blue from the logo
+          DEFAULT: "#0099ff",
           50: "#f0f9ff",
           100: "#e0f2fe",
           200: "#bae6fd",

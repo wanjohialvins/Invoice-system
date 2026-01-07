@@ -17,6 +17,7 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
+import { useTheme } from "../hooks/useTheme";
 import {
   FaSave,
   FaUndo,
@@ -193,6 +194,17 @@ const Settings: React.FC = () => {
   const [restoring, setRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Theme Hook for Instant Switching
+  const { applyTheme: instantSetTheme } = useTheme();
+
+  const handleThemeChange = (newTheme: "light" | "dark" | "auto") => {
+    // 1. Update local state for the UI
+    setUserPreferences(prev => ({ ...prev, theme: newTheme }));
+
+    // 2. Trigger "Iron Man" transition immediately
+    instantSetTheme(newTheme);
+  };
+
   // Load Data
   useEffect(() => {
     try {
@@ -360,25 +372,25 @@ const Settings: React.FC = () => {
   // Render Helpers
   const renderInput = (label: string, value: string, onChange: (val: string) => void, type = "text", placeholder = "") => (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-midnight-text-secondary mb-1">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none"
+        className="w-full px-4 py-2 border border-gray-300 dark:border-midnight-700 rounded-lg bg-white dark:bg-midnight-950 text-gray-900 dark:text-midnight-text-primary focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none"
       />
     </div>
   );
 
   const renderSelect = (label: string, value: string, options: { value: string; label: string }[], onChange: (val: string) => void) => (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-midnight-text-secondary mb-1">{label}</label>
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none bg-white"
+          className="w-full px-4 py-2 border border-gray-300 dark:border-midnight-700 rounded-lg appearance-none bg-white dark:bg-midnight-950 text-gray-900 dark:text-midnight-text-primary focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -386,7 +398,7 @@ const Settings: React.FC = () => {
             </option>
           ))}
         </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700 dark:text-midnight-text-secondary">
           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
         </div>
       </div>
@@ -421,16 +433,16 @@ const Settings: React.FC = () => {
   if (loading) return <div className="h-screen flex items-center justify-center text-gray-500">Loading Configuration...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col font-sans transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+      <header className="bg-white dark:bg-midnight-900 border-b border-gray-200 dark:border-midnight-700 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-brand-100 text-brand-600 rounded-lg">
+          <div className="p-2 bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg">
             <FaUserCog size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">System Settings</h1>
-            <p className="text-sm text-gray-500">Manage application configurations</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-midnight-text-primary">System Settings</h1>
+            <p className="text-sm text-gray-500 dark:text-midnight-text-secondary">Manage application configurations</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -469,12 +481,12 @@ const Settings: React.FC = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                    ? 'bg-blue-50 dark:bg-midnight-800 text-blue-700 dark:text-brand-400 shadow-sm ring-1 ring-blue-200 dark:ring-midnight-700'
+                    : 'text-gray-600 dark:text-midnight-text-secondary hover:bg-white dark:hover:bg-midnight-800 hover:text-gray-900 dark:hover:text-midnight-text-primary'
                     }`}
                 >
                   <div className="flex items-center gap-3">
-                    <tab.icon className={activeTab === tab.id ? "text-brand-500" : "text-gray-400"} size={18} />
+                    <tab.icon className={activeTab === tab.id ? "text-brand-500" : "text-gray-400 dark:text-gray-600"} size={18} />
                     {tab.label}
                   </div>
                   {activeTab === tab.id && <FaChevronRight size={12} className="text-brand-400" />}
@@ -483,16 +495,16 @@ const Settings: React.FC = () => {
             </nav>
 
             {/* Quick Stats Widget */}
-            <div className="mt-8 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="mt-8 bg-white dark:bg-midnight-900 p-4 rounded-xl border border-gray-100 dark:border-midnight-700 shadow-sm">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">System Status</h4>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Version</span>
-                  <span className="font-medium text-gray-900">{appSettings.version}</span>
+                  <span className="text-gray-600 dark:text-midnight-text-secondary">Version</span>
+                  <span className="font-medium text-gray-900 dark:text-midnight-text-primary">{appSettings.version}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Last Setup</span>
-                  <span className="font-medium text-gray-900 text-xs">
+                  <span className="text-gray-600 dark:text-midnight-text-secondary">Last Setup</span>
+                  <span className="font-medium text-gray-900 dark:text-midnight-text-primary text-xs">
                     {new Date(appSettings.lastSaved).toLocaleDateString()}
                   </span>
                 </div>
@@ -501,7 +513,7 @@ const Settings: React.FC = () => {
           </aside>
 
           {/* Content Area */}
-          <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 min-h-[500px]">
+          <div className="flex-1 bg-white dark:bg-midnight-900 rounded-2xl shadow-sm border border-gray-200 dark:border-midnight-700 min-h-[500px] transition-colors duration-300">
 
             {/* Company Settings */}
             {activeTab === 'company' && (
@@ -637,7 +649,7 @@ const Settings: React.FC = () => {
                         { value: "light", label: "Light Mode" },
                         { value: "dark", label: "Dark Mode" },
                         { value: "auto", label: "System Default" }
-                      ], v => setUserPreferences({ ...userPreferences, theme: v as any }))}
+                      ], v => handleThemeChange(v as any))}
 
                       {renderSelect("Language", userPreferences.language, [
                         { value: "en", label: "English" },

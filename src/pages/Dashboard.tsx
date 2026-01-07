@@ -165,14 +165,14 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-4 md:p-8 bg-slate-50 dark:bg-midnight-900 min-h-screen font-sans transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-up delay-100">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Command Center</h1>
-            <p className="text-slate-500 mt-1 flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-midnight-text-primary tracking-tight">Command Center</h1>
+            <p className="text-slate-500 dark:text-midnight-text-secondary mt-1 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               System Operational • {new Date().toLocaleDateString()}
             </p>
@@ -194,14 +194,14 @@ const Dashboard: React.FC = () => {
             { label: "Avg. Order Value", value: `Ksh ${Math.round(metrics.averageOrderValue).toLocaleString()}`, icon: FaChartLine, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Stock Value", value: `Ksh ${metrics.stockValue.toLocaleString()}`, icon: FaUsers, color: "text-purple-600", bg: "bg-purple-50" }
           ].map((card, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card relative overflow-hidden group">
+            <div key={i} className="bg-white dark:bg-midnight-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-midnight-700 jarvis-card relative overflow-hidden group transition-colors duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/20 to-transparent -mr-10 -mt-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
               <div className="flex justify-between items-start relative z-10">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">{card.label}</p>
-                  <h3 className="text-2xl font-bold text-slate-900 group-hover:text-brand-600 transition-colors">{card.value}</h3>
+                  <p className="text-sm font-medium text-slate-500 dark:text-midnight-text-secondary mb-1">{card.label}</p>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-midnight-text-primary group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{card.value}</h3>
                 </div>
-                <div className={`p-3 rounded-xl ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`p-3 rounded-xl ${card.bg} dark:bg-opacity-10 ${card.color} group-hover:scale-110 transition-transform duration-300`}>
                   <card.icon size={20} />
                 </div>
               </div>
@@ -216,12 +216,12 @@ const Dashboard: React.FC = () => {
           <div className="lg:col-span-2 space-y-8 animate-slide-up delay-300">
 
             {/* Revenue Chart */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 jarvis-card">
+            <div className="bg-white dark:bg-midnight-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-midnight-700 jarvis-card transition-colors duration-300">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-midnight-text-primary flex items-center gap-2">
                   <FaChartLine className="text-brand-500" /> Revenue Trends
                 </h2>
-                <select className="text-sm bg-slate-50 border-none rounded-lg text-slate-600 focus:ring-0 cursor-pointer hover:bg-slate-100 transition-colors px-3 py-1">
+                <select className="text-sm bg-slate-50 dark:bg-midnight-950 border-none rounded-lg text-slate-600 dark:text-midnight-text-secondary focus:ring-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-midnight-700 transition-colors px-3 py-1">
                   <option>Last 6 Months</option>
                 </select>
               </div>

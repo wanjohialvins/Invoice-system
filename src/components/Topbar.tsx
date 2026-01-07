@@ -9,31 +9,31 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20 px-4 md:px-8 py-4 flex justify-between items-center transition-all duration-300">
+    <header className="bg-white/80 dark:bg-midnight-900/80 backdrop-blur-md border-b border-gray-100 dark:border-midnight-700 sticky top-0 z-20 px-4 md:px-8 py-4 flex justify-between items-center transition-all duration-300">
       <div className="flex items-center gap-3 flex-1">
         {/* Hamburger Menu for Mobile */}
         {isMobile && (
           <button
             onClick={onMenuClick}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-midnight-800 rounded-lg transition-colors lg:hidden"
             aria-label="Toggle menu"
           >
-            <FiMenu size={24} className="text-gray-700 icon-hover-scale" />
+            <FiMenu size={24} className="text-gray-700 dark:text-midnight-text-primary icon-hover-scale" />
           </button>
         )}
 
         {/* Title */}
         <div className="flex items-center gap-3">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">KONSUT</h1>
-          <span className="hidden md:inline-block px-3 py-1 bg-brand-100 text-brand-700 text-xs font-semibold rounded-full">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-midnight-text-primary">KONSUT</h1>
+          <span className="hidden md:inline-block px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 text-xs font-semibold rounded-full">
             Enterprise Plan
           </span>
         </div>
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
-            <FiBell size={20} className="text-gray-600 icon-hover-shake icon-pulse-continuous" />
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-midnight-800 rounded-lg transition-colors relative">
+            <FiBell size={20} className="text-gray-600 dark:text-midnight-text-secondary icon-hover-shake icon-pulse-continuous" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
         </div>

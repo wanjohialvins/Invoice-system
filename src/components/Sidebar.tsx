@@ -13,14 +13,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   return (
     <aside
       className={`
-        w-64 bg-slate-900 text-white flex flex-col shadow-xl z-30 transition-all duration-300
+        w-64 bg-slate-900 dark:bg-midnight-900 text-white flex flex-col shadow-xl z-30 transition-all duration-300 border-r border-slate-800 dark:border-midnight-700
         ${isMobile
           ? `fixed inset-y-0 left-0 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
           : 'relative'
         }
       `}
     >
-      <div className="h-28 flex items-center justify-center px-4 border-b border-slate-800 bg-slate-950">
+      <div className="h-28 flex items-center justify-center px-4 border-b border-slate-800 dark:border-midnight-700 bg-slate-950 dark:bg-midnight-950">
         <div className="flex items-center group cursor-pointer hover:scale-105 transition-transform duration-200">
           <img
             src="/src/assets/logo.jpg"
@@ -50,14 +50,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
+                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive && <div className="absolute inset-0 bg-brand-500 opacity-20 animate-pulse"></div>}
+                {isActive && <div className="absolute inset-0 bg-brand-500 dark:bg-midnight-accent opacity-20 animate-pulse"></div>}
                 <FiHome className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                 <span className="relative z-10">Dashboard</span>
               </>
@@ -68,8 +68,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
+                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
               }`
             }
           >
@@ -80,8 +80,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
+                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
               }`
             }
           >
@@ -92,8 +92,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-900/20 translate-x-1"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-brand-600 dark:bg-midnight-accent text-white shadow-lg shadow-brand-900/20 dark:shadow-red-900/20 translate-x-1"
+                : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
               }`
             }
           >
@@ -142,16 +142,30 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </nav>
       </div>
 
-      <div className="mt-auto p-4 border-t border-slate-800 bg-slate-950/50">
-        <div className="flex items-center gap-3">
+      <div className="mt-auto p-4 border-t border-slate-800 dark:border-midnight-700 bg-slate-950/50 dark:bg-midnight-900/50">
+        <NavLink
+          to="/settings"
+          onClick={isMobile ? onClose : undefined}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group w-full ${isActive
+              ? "bg-slate-800 dark:bg-midnight-800 text-white"
+              : "text-slate-400 dark:text-midnight-text-secondary hover:bg-slate-800 dark:hover:bg-midnight-800 hover:text-white"
+            }`
+          }
+        >
+          <FiSettings className="group-hover:rotate-90 transition-transform duration-500" />
+          <span>Data & Settings</span>
+        </NavLink>
+
+        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-800 dark:border-midnight-700">
           <img
             src="/src/assets/avatar_new.jpg"
             alt="User Avatar"
             className="w-10 h-10 rounded-full object-cover border-2 border-brand-500"
           />
           <div>
-            <div className="text-sm font-medium text-white">Eragon Devs</div>
-            <div className="text-xs text-slate-500">Admin</div>
+            <div className="text-sm font-medium text-white dark:text-midnight-text-primary">Eragon Devs</div>
+            <div className="text-xs text-slate-500 dark:text-midnight-text-secondary">Admin</div>
           </div>
         </div>
       </div>

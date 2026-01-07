@@ -607,7 +607,7 @@ const Stock: React.FC = () => {
       </div>
 
       {/* Add / Edit form */}
-      <div className="border rounded bg-white p-4 mb-6 shadow-sm">
+      <div className="border rounded bg-white dark:bg-midnight-800 p-4 mb-6 shadow-sm dark:border-midnight-700">
         <h2 className="text-lg font-semibold mb-2">{editingId ? "Edit Item" : "Add Item"} • {activeCategory}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
@@ -658,7 +658,7 @@ const Stock: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded shadow-sm border">
+      <div className="overflow-x-auto bg-white dark:bg-midnight-800 rounded shadow-sm border dark:border-midnight-700">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-100 text-left">
             <tr>

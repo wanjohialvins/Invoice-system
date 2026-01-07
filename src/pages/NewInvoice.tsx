@@ -803,7 +803,7 @@ const NewInvoice: React.FC = () => {
      Render Component
      ---------------------------- */
   const Toolbar = () => (
-    <div className="bg-white p-4 rounded-lg shadow-sm w-full mb-6 border border-gray-100 flex flex-col gap-4">
+    <div className="bg-white dark:bg-midnight-800 p-4 rounded-lg shadow-sm w-full mb-6 border border-gray-100 dark:border-midnight-700 flex flex-col gap-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
         {/* Title & Type Toggles */}
         <div className="flex items-center justify-between w-full md:w-auto">
@@ -895,7 +895,7 @@ const NewInvoice: React.FC = () => {
         {/* LEFT: Customer & Items */}
         <div className="lg:col-span-2 space-y-6">
           {/* Customer Details */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-white dark:bg-midnight-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-midnight-700">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
               Customer Details
             </h2>
@@ -950,7 +950,7 @@ const NewInvoice: React.FC = () => {
           </div>
 
           {/* Inventory Selector */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-white dark:bg-midnight-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-midnight-700">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
               Add Items
             </h2>
@@ -973,7 +973,7 @@ const NewInvoice: React.FC = () => {
               <div className="flex-1 w-full">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Select Item</label>
                 <select
-                  className="w-full border border-gray-300 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-[#0099ff] focus:border-[#0099ff] outline-none transition-all"
+                  className="w-full border border-gray-300 dark:border-midnight-700 p-2.5 rounded-lg bg-white dark:bg-midnight-950 focus:ring-2 focus:ring-[#0099ff] focus:border-[#0099ff] outline-none transition-all dark:text-midnight-text-primary"
                   value={selectedId[activeCategory]}
                   onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
                 >
@@ -1007,7 +1007,7 @@ const NewInvoice: React.FC = () => {
           </div>
 
           {/* Selected Items Table */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white dark:bg-midnight-800 rounded-lg shadow-sm border border-gray-100 dark:border-midnight-700 overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-700">Items List ({lines.length})</h3>
               <button
