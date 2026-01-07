@@ -273,7 +273,7 @@ const Stock: React.FC = () => {
   // Updates Ksh when USD changes
   const onUsdChangeInForm = (value: number) => {
     setFormPriceUSD(value);
-    setFormPriceKsh(Math.round(value * currencyRate));
+    setFormPriceKsh(Number((value * currencyRate).toFixed(2)));
   };
 
   /* ---------------------
@@ -644,6 +644,7 @@ const Stock: React.FC = () => {
             <input
               type="number"
               min={0}
+              step="0.01"
               value={formPriceKsh}
               onChange={(e) => onKshChangeInForm(Number(e.target.value || 0))}
               className="border px-2 py-1 rounded w-full"
@@ -655,6 +656,7 @@ const Stock: React.FC = () => {
             <input
               type="number"
               min={0}
+              step="0.01"
               value={formPriceUSD}
               onChange={(e) => onUsdChangeInForm(Number(e.target.value || 0))}
               className="border px-2 py-1 rounded w-full"
