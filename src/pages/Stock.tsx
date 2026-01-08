@@ -792,6 +792,7 @@ const Stock: React.FC = () => {
               <th className="px-4 py-3 text-left">Category</th>
               <th className="px-4 py-3 text-left">Qty</th>
               <th className="px-4 py-3 text-left">Unit Price (Ksh)</th>
+              <th className="px-4 py-3 text-left">Unit Price (USD)</th>
               <th className="px-4 py-3 text-left">Total Value (Ksh)</th>
               <th className="px-4 py-3 text-center">Actions</th>
             </tr>
@@ -799,7 +800,7 @@ const Stock: React.FC = () => {
           <tbody>
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No entries in {activeCategory}.</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No entries in {activeCategory}.</td>
               </tr>
             ) : (
               filteredItems.map((it) => {
@@ -815,6 +816,7 @@ const Stock: React.FC = () => {
                       <span className={`${isLowStock ? 'text-red-600 font-bold' : ''}`}>{it.quantity}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-700">Ksh {it.priceKsh.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-700">$ {(it.priceUSD || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 font-medium text-gray-900">Ksh {totalValue.toLocaleString()}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex justify-center gap-1">

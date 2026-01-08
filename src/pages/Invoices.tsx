@@ -15,7 +15,7 @@
  * - Search and filter capabilities
  */
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp, FaFileInvoice, FaEllipsisV } from "react-icons/fa";
+import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp, FaFileInvoice, FaEllipsisV, FaDollarSign } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import type { Invoice as InvoiceData, InvoiceType as DocumentType } from "../types/types";
@@ -509,9 +509,16 @@ const Invoices: React.FC = () => {
                           <div className="flex items-center justify-center gap-2 relative">
                             {/* Primary Actions */}
                             <button
-                              onClick={(e) => { e.stopPropagation(); generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true }); }}
+                              onClick={(e) => { e.stopPropagation(); generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true, currency: 'USD' }); }}
+                              className="text-green-600 hover:text-green-700 transition-colors p-1.5 rounded-full hover:bg-green-50"
+                              title="Download PDF (USD)"
+                            >
+                              <FaDollarSign size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true, currency: 'Ksh' }); }}
                               className="text-gray-400 hover:text-brand-600 transition-colors p-1.5 rounded-full hover:bg-brand-50"
-                              title="Download PDF"
+                              title="Download PDF (Ksh)"
                             >
                               <FaFilePdf size={14} />
                             </button>
