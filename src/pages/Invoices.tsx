@@ -235,31 +235,7 @@ const Invoices: React.FC = () => {
     }
   }, [invoices]);
 
-  const duplicateDocument = useCallback((invoice: InvoiceData) => {
-    try {
-      const newId = invoice.type === 'quotation'
-        ? `QUO-${Date.now()}`
-        : invoice.type === 'proforma'
-          ? `PRO-${Date.now()}`
-          : `INV-${Date.now()}`;
 
-      const duplicate: InvoiceData = {
-        ...invoice,
-        id: newId,
-        status: 'draft',
-        issuedDate: new Date().toISOString().split('T')[0],
-      };
-
-      const updated = [...invoices, duplicate];
-      setInvoices(updated);
-      localStorage.setItem(INVOICES_KEY, JSON.stringify(updated));
-
-      showToast('success', `Document duplicated! New ID: ${newId}`);
-    } catch (error) {
-      console.error("Failed to duplicate document:", error);
-      showToast('error', 'Failed to duplicate document');
-    }
-  }, [invoices]);
 
   const editDocument = useCallback((invoice: InvoiceData) => {
     localStorage.setItem('editing_invoice', JSON.stringify(invoice));
@@ -552,12 +528,7 @@ const Invoices: React.FC = () => {
                                     >
                                       <FaCheck size={12} className="text-green-500" /> Update Status
                                     </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); duplicateDocument(inv); setOpenMenuId(null); }}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                    >
-                                      <FaCopy size={12} className="text-purple-500" /> Duplicate
-                                    </button>
+
 
                                     {activeTab === 'quotation' && (
                                       <button
