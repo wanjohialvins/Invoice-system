@@ -623,7 +623,7 @@ const NewInvoice: React.FC = () => {
       const pdfDocType = activeDocumentType === 'quotation' ? 'QUOTATION'
         : activeDocumentType === 'proforma' ? 'PROFORMA'
           : 'INVOICE';
-      await generateInvoicePDF(invoiceData as any, pdfDocType as any);
+      await generateInvoicePDF(invoiceData as any, pdfDocType as any, { includeDescriptions: includeDescriptionsInPDF });
 
       // Save PDF generation record
       const pdfRecord = {

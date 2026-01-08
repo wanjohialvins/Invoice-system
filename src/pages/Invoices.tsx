@@ -518,7 +518,7 @@ const Invoices: React.FC = () => {
                               <FaShareAlt size={16} />
                             </button>
                             <button
-                              onClick={() => generateInvoicePDF(inv as any)}
+                              onClick={() => generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true })}
                               className="text-gray-400 hover:text-brand-600 transition-colors p-2 rounded-full hover:bg-brand-50"
                               title="Download PDF"
                             >

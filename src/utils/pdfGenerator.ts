@@ -46,7 +46,8 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
 
 export const generateInvoicePDF = async (
   invoice: InvoiceData,
-  documentType: "INVOICE" | "QUOTATION" | "PROFORMA" = "INVOICE"
+  documentType: "INVOICE" | "QUOTATION" | "PROFORMA" = "INVOICE",
+  options: { includeDescriptions?: boolean } = {}
 ) => {
   try {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -266,7 +267,9 @@ export const generateInvoicePDF = async (
     ];
 
     const tableBody = invoice.items.map((l) => [
-      l.description || l.name,
+      options.includeDescriptions && l.description
+        ? `${l.name}\n${l.description}`
+        : l.name,
       // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-",
       String(l.quantity),
       l.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
