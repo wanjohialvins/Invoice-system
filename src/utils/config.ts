@@ -21,8 +21,6 @@ export const DEFAULT_INVOICE_SETTINGS = {
     currency: "Ksh",
     taxRate: 0.16,
     includeTax: true,
-    includeFreight: true,
-    freightRate: 0, // Default to 0, usually dynamic
     footerText: "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya",
 };
 
