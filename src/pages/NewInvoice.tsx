@@ -146,7 +146,7 @@ const NewInvoice: React.FC = () => {
     return allStockItems.filter(i =>
       i.name.toLowerCase().includes(lower) ||
       (i.description && i.description.toLowerCase().includes(lower))
-    ).slice(0, 10);
+    ).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 10);
   }, [itemSearch, allStockItems]);
 
   const handleSearchSelect = (item: any) => {
@@ -503,7 +503,13 @@ const NewInvoice: React.FC = () => {
       const raw = localStorage.getItem(INVOICES_KEY);
       const arr = raw ? JSON.parse(raw) : [];
 
-      arr.unshift(invoiceObj);
+      // Check if ID already exists to avoid duplicates
+      const existingIdx = arr.findIndex((inv: Invoice) => inv.id === invoiceObj.id);
+      if (existingIdx >= 0) {
+        arr[existingIdx] = invoiceObj;
+      } else {
+        arr.unshift(invoiceObj);
+      }
       localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
 
       if (activeDocumentType === 'quotation') {
@@ -518,6 +524,10 @@ const NewInvoice: React.FC = () => {
       });
 
       showToast("success", `${activeDocumentType.charAt(0).toUpperCase() + activeDocumentType.slice(1)} ${docId} saved successfully`);
+
+      // Update URL to ensure future edits target this ID
+      navigate(`/new-invoice?id=${invoiceObj.id}&type=${activeDocumentType}`, { replace: true });
+
     } catch (e) {
       console.error("Failed to save document:", e);
       showToast("error", "Failed to save document");
@@ -865,13 +875,7 @@ const NewInvoice: React.FC = () => {
               </>
             )}
 
-            <button onClick={saveDocument} title="Save Document (Ctrl+S)" className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-green-500/20">
-              <FaSave size={14} /> Save
-            </button>
 
-            <button onClick={generatePDF} title="Generate and Download PDF" className="px-3 py-2 rounded-lg bg-[#0099ff] hover:bg-blue-700 text-white font-medium text-xs md:text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/30">
-              <FaFilePdf size={14} /> Download
-            </button>
 
             {/* Workflow Actions */}
             {activeDocumentType === 'quotation' && isEditing && (
@@ -1031,8 +1035,8 @@ const NewInvoice: React.FC = () => {
                                 <div className="font-medium text-gray-800 flex items-center gap-2">
                                   {item.name}
                                   <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.type === 'products' ? 'bg-blue-100 text-blue-700' :
-                                      item.type === 'services' ? 'bg-purple-100 text-purple-700' :
-                                        'bg-orange-100 text-orange-700'
+                                    item.type === 'services' ? 'bg-purple-100 text-purple-700' :
+                                      'bg-orange-100 text-orange-700'
                                     }`}>
                                     {item.type}
                                   </span>
