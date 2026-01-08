@@ -520,6 +520,76 @@ const Settings: React.FC = () => {
     }
   };
 
+  // --- Duplicate Cleanup ---
+  const handleCleanupDuplicates = () => {
+    if (!confirm("This will remove duplicate invoices based on ID and Content, keeping only the LATEST version of each. Proceed?")) return;
+
+    try {
+      setSaveStatus("saving");
+      setSaveMessage("Scanning for duplicates...");
+
+      const raw = localStorage.getItem("invoices");
+      if (!raw) {
+        setSaveStatus("idle");
+        setSaveMessage("No invoices found.");
+        return;
+      }
+
+      const invoices: any[] = JSON.parse(raw);
+      // Invoices are typically stored newest-first.
+      // We iterate and keep the first occurrence (latest) of an ID or content signature.
+
+      const seenIds = new Set<string>();
+      const seenSignatures = new Set<string>();
+      const validInvoices: any[] = [];
+      let removedCount = 0;
+
+      for (const inv of invoices) {
+        // 1. Strict ID Check (Prevent multiple rows with same Invoice ID)
+        if (inv.id && seenIds.has(inv.id)) {
+          removedCount++;
+          continue;
+        }
+
+        // 2. Content Signature Check (Prevent multiple saved copies with different IDs but same content)
+        // Signature: Customer + Date + Total + Items(ID+Qty+Price)
+        const itemsSig = (inv.items || []).map((i: any) => `${i.id}-${i.quantity}-${i.unitPrice}`).join('|');
+        const signature = `${inv.customer?.name}|${inv.grandTotal}|${inv.issuedDate}|${itemsSig}`;
+
+        if (seenSignatures.has(signature)) {
+          removedCount++;
+          continue;
+        }
+
+        // Mark as seen and keep
+        if (inv.id) seenIds.add(inv.id);
+        seenSignatures.add(signature);
+        validInvoices.push(inv);
+      }
+
+      if (removedCount === 0) {
+        setSaveStatus("saved");
+        setSaveMessage("No duplicates found.");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+        return;
+      }
+
+      localStorage.setItem("invoices", JSON.stringify(validInvoices));
+
+      setSaveStatus("saved");
+      setSaveMessage(`Cleanup Complete! Removed ${removedCount} duplicate(s). Reloading...`);
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (e) {
+      console.error("Cleanup failed", e);
+      setSaveStatus("error");
+      setSaveMessage("Cleanup failed.");
+    }
+  };
+
   // Render Helpers
   const renderInput = (label: string, value: string, onChange: (val: string) => void, type = "text", placeholder = "") => (
     <div className="mb-4">
@@ -913,6 +983,12 @@ const Settings: React.FC = () => {
                           <FaExclamationTriangle className="text-red-500" />
                           <h4 className="font-semibold text-red-800 text-sm">Danger Zone</h4>
                         </div>
+                        <button
+                          onClick={handleCleanupDuplicates}
+                          className="w-full py-2 bg-white border border-orange-200 text-orange-600 hover:bg-orange-100 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 mb-3"
+                        >
+                          <FaEraser size={12} /> Cleanup Duplicates
+                        </button>
                         <button
                           onClick={handleClearAllData}
                           className="w-full py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
