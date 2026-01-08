@@ -40,16 +40,6 @@ const CLIENTS_KEY = "konsut_clients"; // Added constant
 const USD_TO_KSH_KEY = "usdToKshRate";
 const LAST_SAVED_QUOTE_KEY = "konsut_last_saved_quote";
 
-const COMPANY = {
-  name: "KONSUT LTD",
-  address1: "P.O BOX 21162-00100",
-  address2: "G.P.O NAIROBI",
-  phone: "+254 700 420 897",
-  email: "info@konsut.co.ke",
-  pin: "P052435869T",
-
-};
-
 
 
 const NewInvoice: React.FC = () => {
