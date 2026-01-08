@@ -66,7 +66,6 @@ interface CompanyInfo {
 interface InvoiceSettings {
   numberFormat: "comma" | "decimal" | "compact";
   dateFormat: "DD/MM/YYYY";
-  includeFreight: boolean;
   includeDescriptions: boolean;
   includeCustomerDetails: boolean;
   includePaymentDetails: boolean;
@@ -129,7 +128,6 @@ const DEFAULT_COMPANY: CompanyInfo = {
 const DEFAULT_INVOICE_SETTINGS: InvoiceSettings = {
   numberFormat: "comma",
   dateFormat: "DD/MM/YYYY",
-  includeFreight: true,
   includeDescriptions: true,
   includeCustomerDetails: true,
   includePaymentDetails: true,
@@ -849,8 +847,10 @@ const Settings: React.FC = () => {
                       {renderToggle("Show Header", "Include company header", invoiceSettings.includeHeader, v => setInvoiceSettings({ ...invoiceSettings, includeHeader: v }))}
                       {renderToggle("Show Footer", "Include footer text", invoiceSettings.includeFooter, v => setInvoiceSettings({ ...invoiceSettings, includeFooter: v }))}
                       {renderToggle("Watermark", "Background branding", invoiceSettings.includeWatermark, v => setInvoiceSettings({ ...invoiceSettings, includeWatermark: v }))}
-                      {renderToggle("Freight Col", "Show shipping/freight", invoiceSettings.includeFreight, v => setInvoiceSettings({ ...invoiceSettings, includeFreight: v }))}
+                      {renderToggle("Barcode", "Include ID barcode", invoiceSettings.includeBarcode, v => setInvoiceSettings({ ...invoiceSettings, includeBarcode: v }))}
                       {renderToggle("Payment Info", "Bank details block", invoiceSettings.includePaymentDetails, v => setInvoiceSettings({ ...invoiceSettings, includePaymentDetails: v }))}
+                      {renderToggle("Company Info", "Your company details", invoiceSettings.includeCompanyDetails, v => setInvoiceSettings({ ...invoiceSettings, includeCompanyDetails: v }))}
+                      {renderToggle("Customer Info", "Bill-to details block", invoiceSettings.includeCustomerDetails, v => setInvoiceSettings({ ...invoiceSettings, includeCustomerDetails: v }))}
                     </div>
                   </div>
                 </div>
@@ -998,6 +998,87 @@ const Settings: React.FC = () => {
                       </div>
                     </div>
 
+
+                    {/* System Updates & Versioning */}
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mt-6">
+                      <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">System Updates</h3>
+                        <span className="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-bold">Current: v{appSettings.version}</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Release Notes</label>
+                          <textarea
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm text-gray-600 h-24 resize-none"
+                            placeholder="Describe the changes in this version..."
+                          />
+                          <p className="text-xs text-gray-400 mt-2">Enter detailed notes before saving a new version.</p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-600">Bump Version Number:</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                if (!confirm("Release Major Update (X.0.0)?")) return;
+                                const [major] = appSettings.version.split('.').map(Number);
+                                const newVer = `${major + 1}.0.0`;
+                                setAppSettings(prev => {
+                                  const updated = { ...prev, version: newVer, lastSaved: new Date().toISOString() };
+                                  // Immediate Save
+                                  localStorage.setItem("appSettings", JSON.stringify(updated));
+                                  return updated;
+                                });
+                                setSaveMessage(`Version updated to ${newVer}`);
+                                setTimeout(saveSettings, 500); // Trigger full save
+                              }}
+                              className="flex-1 py-2 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-lg text-xs font-bold uppercase transition-colors"
+                            >
+                              Major
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!confirm("Release Minor Update (0.X.0)?")) return;
+                                const [major, minor] = appSettings.version.split('.').map(Number);
+                                const newVer = `${major}.${minor + 1}.0`;
+                                setAppSettings(prev => {
+                                  const updated = { ...prev, version: newVer, lastSaved: new Date().toISOString() };
+                                  localStorage.setItem("appSettings", JSON.stringify(updated));
+                                  return updated;
+                                });
+                                setSaveMessage(`Version updated to ${newVer}`);
+                                setTimeout(saveSettings, 500);
+                              }}
+                              className="flex-1 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-lg text-xs font-bold uppercase transition-colors"
+                            >
+                              Minor
+                            </button>
+                            <button
+                              onClick={() => {
+                                const [major, minor, patch] = appSettings.version.split('.').map(Number);
+                                const newVer = `${major}.${minor}.${patch + 1}`;
+                                setAppSettings(prev => {
+                                  const updated = { ...prev, version: newVer, lastSaved: new Date().toISOString() };
+                                  localStorage.setItem("appSettings", JSON.stringify(updated));
+                                  return updated;
+                                });
+                                setSaveMessage(`Version updated to ${newVer}`);
+                                setTimeout(saveSettings, 500);
+                              }}
+                              className="flex-1 py-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-xs font-bold uppercase transition-colors"
+                            >
+                              Patch
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            <strong>Major</strong>: Structural changes.<br />
+                            <strong>Minor</strong>: New features.<br />
+                            <strong>Patch</strong>: Bug fixes.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Developer Zone - ADMIN ONLY */}
                     {user?.role === 'admin' && (
