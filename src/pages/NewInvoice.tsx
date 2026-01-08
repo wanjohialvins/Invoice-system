@@ -20,7 +20,8 @@ import {
   FaEraser,
   FaMapMarkerAlt,
   FaPhone,
-  FaEnvelope
+  FaEnvelope,
+  FaTimes
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
@@ -126,6 +127,37 @@ const NewInvoice: React.FC = () => {
     mobilization: 1,
     services: 1,
   });
+
+  // --- Global Item Search State ---
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+
+  const allStockItems = useMemo(() => {
+    return [
+      ...products.map(p => ({ ...p, type: 'products' as const })),
+      ...mobilization.map(p => ({ ...p, type: 'mobilization' as const })),
+      ...services.map(p => ({ ...p, type: 'services' as const }))
+    ];
+  }, [products, mobilization, services]);
+
+  const filteredStock = useMemo(() => {
+    if (!itemSearch) return [];
+    const lower = itemSearch.toLowerCase();
+    return allStockItems.filter(i =>
+      i.name.toLowerCase().includes(lower) ||
+      (i.description && i.description.toLowerCase().includes(lower))
+    ).slice(0, 10);
+  }, [itemSearch, allStockItems]);
+
+  const handleSearchSelect = (item: any) => {
+    // Switch category context to the item's category
+    setActiveCategory(item.type);
+    setSelectedId(prev => ({ ...prev, [item.type]: item.id }));
+
+    // Reset search
+    setIsSearchMode(false);
+    setItemSearch("");
+  };
 
 
 
@@ -951,19 +983,72 @@ const NewInvoice: React.FC = () => {
             {/* Selection Row */}
             <div className="flex flex-col md:flex-row gap-3 items-end bg-gray-50 p-4 rounded-lg">
               <div className="flex-1 w-full">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Select Item</label>
-                <select
-                  className="w-full border border-gray-300 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-[#0099ff] focus:border-[#0099ff] outline-none transition-all"
-                  value={selectedId[activeCategory]}
-                  onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
-                >
-                  <option value="">-- Choose {activeCategory} --</option>
-                  {getFilteredForCategory(activeCategory).map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.priceKsh ? `Ksh ${p.priceKsh}` : `USD ${p.priceUSD}`})
-                    </option>
-                  ))}
-                </select>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">{isSearchMode ? "Search All Items" : "Select Item"}</label>
+                  <button
+                    onClick={() => { setIsSearchMode(!isSearchMode); setItemSearch(""); }}
+                    className={`text-xs flex items-center gap-1 font-medium transition-colors ${isSearchMode ? 'text-red-500 hover:text-red-600' : 'text-[#0099ff] hover:text-blue-600'}`}
+                  >
+                    {isSearchMode ? <><FaTimes /> Cancel Search</> : <><FaSearch /> Search All</>}
+                  </button>
+                </div>
+
+                {!isSearchMode ? (
+                  <select
+                    className="w-full border border-gray-300 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-[#0099ff] focus:border-[#0099ff] outline-none transition-all"
+                    value={selectedId[activeCategory]}
+                    onChange={(e) => setSelectedId((s) => ({ ...s, [activeCategory]: e.target.value }))}
+                  >
+                    <option value="">-- Choose {activeCategory} --</option>
+                    {getFilteredForCategory(activeCategory).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.priceKsh ? `Ksh ${p.priceKsh}` : `USD ${p.priceUSD}`})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="relative">
+                    <input
+                      autoFocus
+                      className="w-full border border-[#0099ff] p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-[#0099ff]/20 outline-none transition-all shadow-sm"
+                      placeholder="Type name or description..."
+                      value={itemSearch}
+                      onChange={e => setItemSearch(e.target.value)}
+                    />
+                    {/* Results Dropdown */}
+                    {itemSearch && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto w-full animate-fade-in">
+                        {filteredStock.length === 0 ? (
+                          <div className="p-3 text-sm text-gray-500 text-center italic">No items found matching "{itemSearch}"</div>
+                        ) : (
+                          filteredStock.map(item => (
+                            <button
+                              key={`${item.type}-${item.id}`}
+                              onClick={() => handleSearchSelect(item)}
+                              className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 flex justify-between items-center group transition-colors"
+                            >
+                              <div>
+                                <div className="font-medium text-gray-800 flex items-center gap-2">
+                                  {item.name}
+                                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.type === 'products' ? 'bg-blue-100 text-blue-700' :
+                                      item.type === 'services' ? 'bg-purple-100 text-purple-700' :
+                                        'bg-orange-100 text-orange-700'
+                                    }`}>
+                                    {item.type}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 truncate max-w-[200px]">{item.description}</div>
+                              </div>
+                              <div className="text-xs font-semibold text-gray-600 whitespace-nowrap ml-2">
+                                {item.priceKsh ? `Ksh ${item.priceKsh.toLocaleString()}` : `USD ${item.priceUSD?.toLocaleString()}`}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="w-24">
