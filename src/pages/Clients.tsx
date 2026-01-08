@@ -448,12 +448,12 @@ const Clients: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                  <th className="p-4">Client</th>
-                  <th className="p-4">Contact</th>
-                  <th className="p-4">Revenue</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Last Active</th>
-                  <th className="p-4 text-center">Actions</th>
+                  <th className="px-4 py-3">Client</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Revenue</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Last Active</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -467,7 +467,7 @@ const Clients: React.FC = () => {
 
                     return (
                       <tr key={client.id} className="hover:bg-gray-50 transition group cursor-pointer" onClick={() => setSelectedClient(client)}>
-                        <td className="p-4">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ backgroundColor: avatarColor }}>
                               {initials}
@@ -478,15 +478,15 @@ const Clients: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm text-gray-600">
                           <div className="flex items-center gap-2 mb-1"><FaEnvelope className="text-gray-300" /> {client.email}</div>
                           <div className="flex items-center gap-2"><FaPhone className="text-gray-300" /> {client.phone}</div>
                         </td>
-                        <td className="p-4">
+                        <td className="px-4 py-3">
                           <div className="font-semibold text-gray-800">Ksh {stats.totalRevenue.toLocaleString()}</div>
                           <div className="text-xs text-gray-500">{stats.totalInvoices} Invoices</div>
                         </td>
-                        <td className="p-4">
+                        <td className="px-4 py-3">
                           {stats.overdue > 0 ? (
                             <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Overdue</span>
                           ) : stats.pending > 0 ? (
@@ -495,10 +495,10 @@ const Clients: React.FC = () => {
                             <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Good Standing</span>
                           )}
                         </td>
-                        <td className="p-4 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-gray-500">
                           {stats.lastActive ? new Date(stats.lastActive).toLocaleDateString() : "Never"}
                         </td>
-                        <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           <button onClick={e => { e.stopPropagation(); setSelectedClient(client); }} className="p-2 text-gray-400 hover:text-brand-500 transition" title="View Details">
                             <FaEye />
                           </button>

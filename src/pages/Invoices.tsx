@@ -15,7 +15,7 @@
  * - Search and filter capabilities
  */
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp, FaFileInvoice } from "react-icons/fa";
+import { FaFilePdf, FaTrash, FaSearch, FaEdit, FaCheck, FaClock, FaExchangeAlt, FaCopy, FaShareAlt, FaFilter, FaSortAmountDown, FaSortAmountUp, FaFileInvoice, FaEllipsisV } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { generateInvoicePDF } from "../utils/pdfGenerator";
 import type { Invoice as InvoiceData, InvoiceType as DocumentType } from "../types/types";
@@ -45,6 +45,17 @@ const Invoices: React.FC = () => {
 
   // Keyboard shortcut: Ctrl+N to create new invoice
   useKeyboardShortcut('n', () => navigate('/new-invoice'), true);
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      window.addEventListener('click', handleClickOutside);
+    }
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
 
   // --- Data Loading ---
   const loadInvoices = useCallback(() => {
@@ -449,12 +460,15 @@ const Invoices: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSorted.map((inv) => {
+                  filteredAndSorted.map((inv, index) => {
                     const customerName = inv?.customer?.name || "N/A";
                     const issuedDate = inv?.issuedDate || inv?.date || "N/A";
                     const dueDate = inv?.dueDate || inv?.quotationValidUntil || "N/A";
                     const total = inv?.grandTotal || 0;
                     const isSelected = selectedIds.has(inv.id);
+
+                    // improved dropdown positioning (opens up for last 3 items)
+                    const isBottom = index >= filteredAndSorted.length - 3 && filteredAndSorted.length > 3;
 
                     return (
                       <tr key={inv?.id} className={`hover:bg-gray-50 transition-colors ${isSelected ? "bg-blue-50" : ""}`}>
@@ -474,33 +488,16 @@ const Invoices: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{issuedDate}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{dueDate}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-gray-900">{total.toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {editingStatus === inv?.id ? (
                             <div className="flex gap-1 bg-white p-1 rounded-lg shadow-sm border border-gray-100 flex-wrap z-10 relative">
-                              <button
-                                onClick={() => updateInvoiceStatus(inv?.id, "draft")}
-                                className="px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
-                              >
-                                Draft
-                              </button>
-                              <button
-                                onClick={() => updateInvoiceStatus(inv?.id, "sent")}
-                                className="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                              >
-                                Sent
-                              </button>
-                              <button
-                                onClick={() => updateInvoiceStatus(inv?.id, "paid")}
-                                className="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
-                              >
-                                Paid
-                              </button>
-                              <button
-                                onClick={() => setEditingStatus(null)}
-                                className="px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
-                              >
-                                ✕
-                              </button>
+                              {/* ... keep existing buttons for status editing ... */}
+                              {/* Reference old code for brevity if possible, or just re-emit */}
+                              <button onClick={() => updateInvoiceStatus(inv?.id, "draft")} className="px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100">Draft</button>
+                              <button onClick={() => updateInvoiceStatus(inv?.id, "sent")} className="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">Sent</button>
+                              <button onClick={() => updateInvoiceStatus(inv?.id, "paid")} className="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100">Paid</button>
+                              <button onClick={() => setEditingStatus(null)} className="px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100">✕</button>
                             </div>
                           ) : (
                             <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusColor(inv?.status || "draft")}`}>
@@ -508,68 +505,88 @@ const Invoices: React.FC = () => {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-1 justify-center flex-wrap">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center justify-center gap-2 relative">
+                            {/* Primary Actions */}
                             <button
-                              onClick={() => handleShare(inv)}
-                              className="text-gray-400 hover:text-brand-600 transition-colors p-2 rounded-full hover:bg-brand-50 md:hidden"
-                              title="Share"
-                            >
-                              <FaShareAlt size={16} />
-                            </button>
-                            <button
-                              onClick={() => generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true })}
-                              className="text-gray-400 hover:text-brand-600 transition-colors p-2 rounded-full hover:bg-brand-50"
+                              onClick={(e) => { e.stopPropagation(); generateInvoicePDF(inv as any, inv.type === 'quotation' ? 'QUOTATION' : inv.type === 'proforma' ? 'PROFORMA' : 'INVOICE', { includeDescriptions: true }); }}
+                              className="text-gray-400 hover:text-brand-600 transition-colors p-1.5 rounded-full hover:bg-brand-50"
                               title="Download PDF"
                             >
-                              <FaFilePdf size={16} />
+                              <FaFilePdf size={14} />
                             </button>
                             <button
-                              onClick={() => navigate(`/new-invoice?id=${inv.id}&type=${inv.type.toLowerCase()}`)}
-                              className="text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/new-invoice?id=${inv.id}&type=${inv.type.toLowerCase()}`); }}
+                              className="text-gray-400 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-blue-50"
                               title="Edit Document"
                             >
-                              <FaEdit size={16} />
+                              <FaEdit size={14} />
                             </button>
-                            <button
-                              onClick={() => setEditingStatus(inv?.id || null)}
-                              className="text-gray-400 hover:text-green-600 transition-colors p-2 rounded-full hover:bg-green-50"
-                              title="Update Status"
-                            >
-                              <FaCheck size={16} />
-                            </button>
-                            <button
-                              onClick={() => duplicateDocument(inv)}
-                              className="text-gray-400 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-purple-50"
-                              title="Duplicate"
-                            >
-                              <FaCopy size={16} />
-                            </button>
-                            {activeTab === 'quotation' && (
+
+                            {/* Menu Trigger */}
+                            <div className="relative">
                               <button
-                                onClick={() => convertDocument(inv, 'proforma')}
-                                className="text-gray-400 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-indigo-50"
-                                title="Convert to Proforma"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === inv.id ? null : inv.id);
+                                }}
+                                className={`text-gray-400 hover:text-gray-700 transition-colors p-1.5 rounded-full hover:bg-gray-100 ${openMenuId === inv.id ? 'bg-gray-100 text-gray-700' : ''}`}
                               >
-                                <FaExchangeAlt size={16} />
+                                <FaEllipsisV size={14} />
                               </button>
-                            )}
-                            {activeTab === 'proforma' && (
-                              <button
-                                onClick={() => convertDocument(inv, 'invoice')}
-                                className="text-gray-400 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-indigo-50"
-                                title="Convert to Invoice"
-                              >
-                                <FaExchangeAlt size={16} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => deleteInvoice(inv?.id || "")}
-                              className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <FaTrash size={16} />
-                            </button>
+
+                              {/* Dropdown Menu */}
+                              {openMenuId === inv.id && (
+                                <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 animate-fade-in overflow-hidden ${isBottom ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right'}`}>
+                                  <div className="py-1">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setEditingStatus(inv?.id || null); setOpenMenuId(null); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <FaCheck size={12} className="text-green-500" /> Update Status
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); duplicateDocument(inv); setOpenMenuId(null); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <FaCopy size={12} className="text-purple-500" /> Duplicate
+                                    </button>
+
+                                    {activeTab === 'quotation' && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); convertDocument(inv, 'proforma'); setOpenMenuId(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <FaExchangeAlt size={12} className="text-indigo-500" /> Convert to Proforma
+                                      </button>
+                                    )}
+                                    {activeTab === 'proforma' && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); convertDocument(inv, 'invoice'); setOpenMenuId(null); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <FaExchangeAlt size={12} className="text-indigo-500" /> Convert to Invoice
+                                      </button>
+                                    )}
+
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleShare(inv); setOpenMenuId(null); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 md:hidden"
+                                    >
+                                      <FaShareAlt size={12} className="text-blue-500" /> Share
+                                    </button>
+
+                                    <div className="border-t border-gray-100 my-1"></div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deleteInvoice(inv?.id || ""); setOpenMenuId(null); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                    >
+                                      <FaTrash size={12} /> Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>

@@ -785,43 +785,47 @@ const Stock: React.FC = () => {
       {/* Table */}
       <div className="overflow-x-auto bg-white dark:bg-midnight-800 rounded shadow-sm border dark:border-midnight-700">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-100 text-left">
+          <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
             <tr>
-              <th className="p-2 border">ID</th>
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Category</th>
-              <th className="p-2 border">Qty</th>
-              <th className="p-2 border">Unit Price (Ksh)</th>
-              <th className="p-2 border">Total Value (Ksh)</th>
-              <th className="p-2 border text-center">Actions</th>
+              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Name</th>
+              <th className="px-4 py-3 text-left">Category</th>
+              <th className="px-4 py-3 text-left">Qty</th>
+              <th className="px-4 py-3 text-left">Unit Price (Ksh)</th>
+              <th className="px-4 py-3 text-left">Total Value (Ksh)</th>
+              <th className="px-4 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-4 text-center text-gray-500">No entries in {activeCategory}.</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No entries in {activeCategory}.</td>
               </tr>
             ) : (
               filteredItems.map((it) => {
                 const totalValue = (it.priceKsh || 0) * (it.quantity || 0);
+                // Use a subtle distinct background if low stock
+                const isLowStock = it.quantity < 5;
                 return (
-                  <tr key={it.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 border">{it.id}</td>
-                    <td className="p-2 border">{it.name}</td>
-                    <td className="p-2 border">{it.category}</td>
-                    <td className="p-2 border">{it.quantity}</td>
-                    <td className="p-2 border">Ksh {it.priceKsh.toLocaleString()}</td>
-                    <td className="p-2 border">Ksh {totalValue.toLocaleString()}</td>
-                    <td className="p-2 border text-center">
-                      <div className="flex justify-center gap-2">
-                        <button title="Edit" onClick={() => handleEdit(it)} className="p-1 text-brand-600 hover:text-brand-800">
-                          <FaEdit />
+                  <tr key={it.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${isLowStock ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-4 py-3 font-medium text-gray-900">{it.id}</td>
+                    <td className="px-4 py-3 text-gray-700">{it.name}</td>
+                    <td className="px-4 py-3 text-gray-500 capitalize">{it.category}</td>
+                    <td className="px-4 py-3 text-gray-700 font-medium">
+                      <span className={`${isLowStock ? 'text-red-600 font-bold' : ''}`}>{it.quantity}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">Ksh {it.priceKsh.toLocaleString()}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">Ksh {totalValue.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex justify-center gap-1">
+                        <button title="Edit" onClick={() => handleEdit(it)} className="p-1.5 text-gray-400 hover:text-brand-600 rounded-full hover:bg-brand-50 transition-colors">
+                          <FaEdit size={14} />
                         </button>
-                        <button title="Delete" onClick={() => handleDelete(it.id)} className="p-1 text-red-600">
-                          <FaTrash />
+                        <button title="Delete" onClick={() => handleDelete(it.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors">
+                          <FaTrash size={14} />
                         </button>
-                        <button title={it.description || "No description"} className="p-1 text-gray-600">
-                          <FaInfoCircle />
+                        <button title={it.description || "No description"} className={`p-1.5 rounded-full transition-colors ${it.description ? 'text-gray-400 hover:text-blue-600 hover:bg-blue-50' : 'text-gray-200 cursor-default'}`}>
+                          <FaInfoCircle size={14} />
                         </button>
                       </div>
                     </td>

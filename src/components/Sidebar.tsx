@@ -137,26 +137,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </nav>
       </div>
 
-      <div className="mt-auto p-4 border-t border-slate-800 dark:border-midnight-700 bg-slate-950/50 dark:bg-midnight-900/50">
-        <div className="flex items-center gap-3">
-          <img
-            src={user?.avatar || avatarUrl}
-            alt="User"
-            className="h-10 w-10 rounded-full border-2 border-slate-700 dark:border-midnight-accent/30 object-contain bg-white"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.name || "Guest User"}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate capitalize">{user?.displayRole || user?.role || "Viewer"}</p>
-          </div>
-          <button
-            onClick={logout}
-            title="Log Out"
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <FiLogOut size={18} />
-          </button>
-        </div>
-      </div>
+
     </aside>
   );
 };

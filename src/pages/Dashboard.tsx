@@ -190,23 +190,25 @@ const Dashboard: React.FC = () => {
         {/* KPI Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up delay-200">
           {[
-            { label: "Total Revenue", value: `Ksh ${metrics.totalRevenue.toLocaleString()}`, icon: FaMoneyBillWave, color: "text-brand-600", bg: "bg-brand-50" },
-            { label: "Total Orders", value: metrics.totalInvoices, icon: FaFileInvoice, color: "text-indigo-600", bg: "bg-indigo-50" },
-            { label: "Avg. Order Value", value: `Ksh ${Math.round(metrics.averageOrderValue).toLocaleString()}`, icon: FaChartLine, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Stock Value", value: `Ksh ${metrics.stockValue.toLocaleString()}`, icon: FaUsers, color: "text-purple-600", bg: "bg-purple-50" }
+            { label: "Total Revenue", value: `Ksh ${metrics.totalRevenue.toLocaleString()}`, icon: FaMoneyBillWave, color: "text-brand-600", bg: "bg-brand-50", link: "/analytics" },
+            { label: "Total Orders", value: metrics.totalInvoices, icon: FaFileInvoice, color: "text-indigo-600", bg: "bg-indigo-50", link: "/invoices" },
+            { label: "Avg. Order Value", value: `Ksh ${Math.round(metrics.averageOrderValue).toLocaleString()}`, icon: FaChartLine, color: "text-emerald-600", bg: "bg-emerald-50", link: "/analytics" },
+            { label: "Stock Value", value: `Ksh ${metrics.stockValue.toLocaleString()}`, icon: FaUsers, color: "text-purple-600", bg: "bg-purple-50", link: "/stock" }
           ].map((card, i) => (
-            <div key={i} className="bg-white dark:bg-midnight-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-midnight-700 jarvis-card relative overflow-hidden group transition-colors duration-300">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/20 to-transparent -mr-10 -mt-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-              <div className="flex justify-between items-start relative z-10">
-                <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-midnight-text-secondary mb-1">{card.label}</p>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-midnight-text-primary group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{card.value}</h3>
-                </div>
-                <div className={`p-3 rounded-xl ${card.bg} dark:bg-opacity-10 ${card.color} group-hover:scale-110 transition-transform duration-300`}>
-                  <card.icon size={20} />
+            <Link key={i} to={card.link} className="block group">
+              <div className="bg-white dark:bg-midnight-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-midnight-700 jarvis-card relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-brand-200 dark:hover:border-brand-800">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/20 to-transparent -mr-10 -mt-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div className="flex justify-between items-start relative z-10">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 dark:text-midnight-text-secondary mb-1">{card.label}</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-midnight-text-primary group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{card.value}</h3>
+                  </div>
+                  <div className={`p-3 rounded-xl ${card.bg} dark:bg-opacity-10 ${card.color} group-hover:scale-110 transition-transform duration-300`}>
+                    <card.icon size={20} />
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

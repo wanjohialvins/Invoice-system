@@ -1,5 +1,6 @@
-import { FiBell, FiMenu } from "react-icons/fi";
+import { FiBell, FiMenu, FiLogOut } from "react-icons/fi";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useAuth } from "../contexts/AuthContext";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -7,10 +8,13 @@ interface TopbarProps {
 
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
+  const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
 
   return (
     <header className="bg-white/80 dark:bg-midnight-900/80 backdrop-blur-md border-b border-gray-100 dark:border-midnight-700 sticky top-0 z-20 px-4 md:px-8 py-4 flex justify-between items-center transition-all duration-300">
-      <div className="flex items-center gap-3 flex-1">
+      {/* Left Section: Menu & Logo */}
+      <div className="flex items-center gap-3">
         {/* Hamburger Menu for Mobile */}
         {isMobile && (
           <button
@@ -30,12 +34,32 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
             Enterprise Plan
           </span>
         </div>
+      </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-gray-100 dark:hover:bg-midnight-800 rounded-lg transition-colors relative">
-            <FiBell size={20} className="text-gray-600 dark:text-midnight-text-secondary icon-hover-shake icon-pulse-continuous" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+      {/* Right Section: Notifications & Profile */}
+      <div className="flex items-center gap-4">
+        <button className="p-2 hover:bg-gray-100 dark:hover:bg-midnight-800 rounded-lg transition-colors relative">
+          <FiBell size={20} className="text-gray-600 dark:text-midnight-text-secondary icon-hover-shake icon-pulse-continuous" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+
+        {/* User Profile */}
+        <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-midnight-700">
+          <div className="hidden md:block text-right">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.name || "Guest User"}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.displayRole || user?.role || "Viewer"}</p>
+          </div>
+          <img
+            src={user?.avatar || avatarUrl}
+            alt="User"
+            className="h-9 w-9 rounded-full border border-gray-200 dark:border-midnight-700 object-contain bg-white"
+          />
+          <button
+            onClick={logout}
+            title="Log Out"
+            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-midnight-800 rounded-lg transition-colors"
+          >
+            <FiLogOut size={18} />
           </button>
         </div>
       </div>

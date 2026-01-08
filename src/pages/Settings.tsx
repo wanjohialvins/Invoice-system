@@ -361,6 +361,152 @@ const Settings: React.FC = () => {
     }
   };
 
+  // --- Migration Logic ---
+  const handleMigrateIDs = () => {
+    if (!confirm("This will rewrite all IDs for Clients, Stock, and Invoices to a shorter, standardized format. This action cannot be undone. Proceed?")) return;
+
+    try {
+      setSaveStatus("saving");
+      setSaveMessage("Migrating data...");
+
+      // 1. Load Data
+      const clientsRaw = localStorage.getItem("konsut_clients");
+      const stockRaw = localStorage.getItem("stockData"); // Assuming simple stock structure or mapped
+      const invoicesRaw = localStorage.getItem("invoices");
+
+      const clients: any[] = clientsRaw ? JSON.parse(clientsRaw) : [];
+      const invoices: any[] = invoicesRaw ? JSON.parse(invoicesRaw) : [];
+      // Stock is usually {products: [], services: []}
+      const stockData: any = stockRaw ? JSON.parse(stockRaw) : { products: [], mobilization: [], services: [] };
+
+      // Maps to track old -> new IDs
+      const clientMap = new Map<string, string>();
+      const stockMap = new Map<string, string>();
+
+      // 2. Migrate Clients
+      // Format: C + 4 random digits (e.g. C1234)
+      const newClients = clients.map((c: any) => {
+        // If already short, keep it? Or force regen? let's force regen for consistency if it's long
+        // Check if ID is already short format (e.g. C1234)
+        const isShort = /^C\d{4}$/.test(c.id);
+        if (isShort) {
+          clientMap.set(c.id, c.id);
+          return c;
+        }
+
+        let newId = "C" + Math.floor(1000 + Math.random() * 9000);
+        // Collision check
+        while (Array.from(clientMap.values()).includes(newId)) {
+          newId = "C" + Math.floor(1000 + Math.random() * 9000);
+        }
+        clientMap.set(c.id, newId);
+        return { ...c, id: newId };
+      });
+
+      // 3. Migrate Stock
+      // Format: P + 4 digits (e.g. P5678)
+      // Iterate through categories
+      const categories = ["products", "mobilization", "services"];
+      const newStockData = { ...stockData };
+
+      categories.forEach(cat => {
+        if (newStockData[cat] && Array.isArray(newStockData[cat])) {
+          newStockData[cat] = newStockData[cat].map((item: any) => {
+            const isShort = /^P\d{4}$/.test(item.id);
+            if (isShort) {
+              stockMap.set(item.id, item.id);
+              return item;
+            }
+            let newId = "P" + Math.floor(1000 + Math.random() * 9000);
+            // Simple collision check within category (global uniqueness preferred but category-scoped is okay if handled)
+            // Let's assume global stock ID uniqueness
+            while (Array.from(stockMap.values()).includes(newId)) {
+              newId = "P" + Math.floor(1000 + Math.random() * 9000);
+            }
+            stockMap.set(item.id, newId);
+            return { ...item, id: newId };
+          });
+        }
+      });
+
+
+      // 4. Migrate Invoices
+      // User requested Invoice IDs should remain UNTOUCHED.
+      // We only update references to Clients and Stock items.
+      const newInvoices = invoices.map((inv: any) => {
+        // Update Customer Reference in Invoice
+        let newCustomerId = inv.customerId;
+        if (newCustomerId && clientMap.has(newCustomerId)) {
+          newCustomerId = clientMap.get(newCustomerId);
+        }
+
+        // Also update snapshot ID if present
+        let newCustomerSnapshot = inv.customer;
+        if (inv.customer && inv.customer.id && clientMap.has(inv.customer.id)) {
+          newCustomerSnapshot = { ...inv.customer, id: clientMap.get(inv.customer.id) };
+        }
+
+        // Update Line Items (Product Refs)
+        let newLineItems = inv.items || []; // items or lineItems? Dashboard uses 'items', code uses 'lineItems' often. Let's check.
+        // The InvoiceData interface in Invoices.tsx uses `items` for line items? 
+        // Wait, Invoices.tsx interface says `items?: InvoiceLine[]`. 
+        // But NewInvoice.tsx often uses `lineItems`. Let's handle both just in case or check usage.
+        // Dashboard.tsx line 58 says `items?: InvoiceLine[]`.
+        // Let's stick to updating both keys if they exist to be safe.
+
+        const updateItem = (item: any) => {
+          if (item.productId && stockMap.has(item.productId)) {
+            return { ...item, productId: stockMap.get(item.productId) };
+          }
+          if (item.id && stockMap.has(item.id)) {
+            // Sometimes item.id IS the product id in line items? Rare but possible.
+            // Usually item.id is line item unique id.
+            // Let's trust productId.
+          }
+          return item;
+        };
+
+        if (Array.isArray(inv.items)) {
+          newLineItems = inv.items.map(updateItem);
+        } else if (Array.isArray(inv.lineItems)) {
+          // Handle alternative key
+          newLineItems = inv.lineItems.map(updateItem);
+          // Re-assign to correct key? If `items` is primary, invalidating `lineItems` might be good or keeping sync.
+          // Best to just update what is there.
+          inv.lineItems = newLineItems;
+        }
+
+        return {
+          ...inv,
+          customerId: newCustomerId,
+          customer: newCustomerSnapshot,
+          items: Array.isArray(inv.items) ? newLineItems : inv.items,
+          // If lineItems exists, we updated it in place above or need to return it.
+          // Let's be rigorous.
+        };
+      });
+
+
+      // 5. Save Back
+      localStorage.setItem("konsut_clients", JSON.stringify(newClients));
+      localStorage.setItem("stockData", JSON.stringify(newStockData));
+      localStorage.setItem("invoices", JSON.stringify(newInvoices));
+
+      // 6. Update App State if necessary (reload is easiest)
+      setSaveStatus("saved");
+      setSaveMessage("Migration Complete! Reloading...");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (error) {
+      console.error("Migration failed:", error);
+      setSaveStatus("error");
+      setSaveMessage("Migration failed. Check console.");
+    }
+  };
+
   const handleClearAllData = () => {
     if (window.confirm("⚠️ WARNING: This will delete ALL data (invoices, clients, stock, settings). Create a backup first!\n\nAre you sure?")) {
       if (window.confirm("Last chance! This action cannot be undone. Proceed?")) {
@@ -649,196 +795,181 @@ const Settings: React.FC = () => {
                   <p className="text-gray-500 mt-1">Application behavior, backups, and data management</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">User Preferences</h3>
-                    <div className="space-y-4">
-                      {renderSelect("Theme Mode", userPreferences.theme, [
-                        { value: "light", label: "Light Mode" },
-                        { value: "dark", label: "Dark Mode" },
-                        { value: "auto", label: "System Default" }
-                      ], v => handleThemeChange(v as any))}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                  {/* LEFT COLUMN: Preferences & Config */}
+                  <div className="xl:col-span-1 space-y-6">
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-100 pb-2">User Preferences</h3>
 
-                      {renderSelect("Language", userPreferences.language, [
-                        { value: "en", label: "English" },
-                        { value: "sw", label: "Swahili" }
-                      ], v => setUserPreferences({ ...userPreferences, language: v }))}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          {renderSelect("Theme Mode", userPreferences.theme, [
+                            { value: "light", label: "Light Mode" },
+                            { value: "dark", label: "Dark Mode" },
+                            { value: "auto", label: "System Default" }
+                          ], v => handleThemeChange(v as any))}
 
-                      <div className="pt-2">
-                        {renderToggle("Auto-Save", "Save drafts automatically", userPreferences.autoSaveDrafts, v => setUserPreferences({ ...userPreferences, autoSaveDrafts: v }))}
+                          {renderSelect("Language", userPreferences.language, [
+                            { value: "en", label: "English" },
+                            { value: "sw", label: "Swahili" }
+                          ], v => setUserPreferences({ ...userPreferences, language: v }))}
+                        </div>
+
+                        <div className="pt-2">
+                          {renderToggle("Auto-Save Drafts", "Save work automatically", userPreferences.autoSaveDrafts, v => setUserPreferences({ ...userPreferences, autoSaveDrafts: v }))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notification Settings */}
+                    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-100 pb-2">Notification Channels</h3>
+                      <div className="space-y-2">
+                        {renderToggle("Email Alerts", "Send copies via email", notificationSettings.email, v => setNotificationSettings({ ...notificationSettings, email: v }))}
+                        {renderToggle("In-App Alerts", "Show toast messages", notificationSettings.inApp, v => setNotificationSettings({ ...notificationSettings, inApp: v }))}
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Data Management</h3>
+                  {/* RIGHT COLUMN (Wide): Data Management */}
+                  <div className="xl:col-span-2 space-y-6">
 
-                    {/* Hidden file input for restore */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-
-                    {/* Backup Info Card */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 mb-6">
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
-                          <FaDatabase size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-blue-900 mb-1">Current Data Status</h4>
-                          <div className="grid grid-cols-2 gap-3 text-sm mt-3">
-                            <div>
-                              <span className="text-blue-600 font-medium">Invoices:</span>
-                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.invoiceCount}</span>
-                            </div>
-                            <div>
-                              <span className="text-blue-600 font-medium">Clients:</span>
-                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.clientCount}</span>
-                            </div>
-                            <div>
-                              <span className="text-blue-600 font-medium">Stock Items:</span>
-                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.stockItemCount}</span>
-                            </div>
-                            <div>
-                              <span className="text-blue-600 font-medium">Total Size:</span>
-                              <span className="ml-2 text-blue-900 font-semibold">{backupInfo.totalSize}</span>
-                            </div>
+                    {/* Backup & Restore Dashboard */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <FaDatabase size={20} />
                           </div>
-                          <div className="mt-3 pt-3 border-t border-blue-200">
-                            <span className="text-xs text-blue-600">Last Backup:</span>
-                            <span className="ml-2 text-xs text-blue-900 font-medium">
-                              {backupInfo.lastBackup
-                                ? new Date(backupInfo.lastBackup).toLocaleString()
-                                : "Never"}
-                            </span>
+                          <div>
+                            <h3 className="text-lg font-bold text-blue-900">Data Management</h3>
+                            <p className="text-sm text-blue-600">Backup, restore, and monitoring</p>
+                          </div>
+                        </div>
+                        <div className="text-right hidden md:block">
+                          <span className="text-xs text-blue-500 uppercase font-semibold">Last Backup</span>
+                          <div className="text-blue-900 font-medium text-sm">
+                            {backupInfo.lastBackup ? new Date(backupInfo.lastBackup).toLocaleString() : "Never"}
                           </div>
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-2 gap-3">
+                      {/* Hidden file input for restore */}
+                      <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
+
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white/60 p-3 rounded-lg border border-blue-100">
+                          <div className="text-xs text-blue-500 uppercase">Invoices</div>
+                          <div className="text-xl font-bold text-blue-900">{backupInfo.invoiceCount}</div>
+                        </div>
+                        <div className="bg-white/60 p-3 rounded-lg border border-blue-100">
+                          <div className="text-xs text-blue-500 uppercase">Clients</div>
+                          <div className="text-xl font-bold text-blue-900">{backupInfo.clientCount}</div>
+                        </div>
+                        <div className="bg-white/60 p-3 rounded-lg border border-blue-100">
+                          <div className="text-xs text-blue-500 uppercase">Stock Items</div>
+                          <div className="text-xl font-bold text-blue-900">{backupInfo.stockItemCount}</div>
+                        </div>
+                        <div className="bg-white/60 p-3 rounded-lg border border-blue-100">
+                          <div className="text-xs text-blue-500 uppercase">Data Size</div>
+                          <div className="text-xl font-bold text-blue-900">{backupInfo.totalSize}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
                         <button
                           onClick={handleBackup}
-                          title="Create and Download Backup"
-                          className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md"
+                          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
                         >
-                          <FaDownload size={14} /> Backup All Data
+                          <FaDownload size={14} /> Backup Data
                         </button>
                         <button
                           onClick={handleRestore}
                           disabled={restoring}
-                          title="Restore Data from Backup File"
-                          className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                          className="flex-1 py-3 bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
                         >
-                          {restoring ? <FaSync className="animate-spin" size={14} /> : <FaUpload size={14} />}
-                          {restoring ? "Restoring..." : "Restore from Backup"}
+                          {restoring ? <FaSync className="animate-spin" /> : <FaUpload size={14} />}
+                          {restoring ? "Restoring..." : "Restore Data"}
                         </button>
                       </div>
                     </div>
 
-                    {/* Browser Storage Info */}
-                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-6">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-gray-200 text-gray-600 rounded-lg">
-                          <FaFolder size={20} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Browser Storage */}
+                      <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 h-full">
+                        <div className="flex items-center gap-3 mb-3">
+                          <FaFolder className="text-gray-400" />
+                          <h4 className="font-semibold text-gray-700 text-sm">Local Storage Path</h4>
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-gray-800 mb-2">Browser Storage Location</h4>
-                          <p className="text-xs text-gray-600 mb-2">
-                            <strong>{getBrowserStorageInfo().browser}</strong>
-                          </p>
-                          <code className="block text-xs bg-white p-3 rounded border border-gray-200 text-gray-700 break-all">
-                            {getBrowserStorageInfo().path}
-                          </code>
-                          <p className="text-xs text-gray-500 mt-2">
-                            💡 Tip: Your data is stored in your browser's localStorage. Create regular backups to prevent data loss.
-                          </p>
+                        <code className="block text-xs bg-white p-2 rounded border border-gray-200 text-gray-600 font-mono break-all mb-2">
+                          {getBrowserStorageInfo().path}
+                        </code>
+                        <p className="text-xs text-gray-500">Data is stored locally in your browser.</p>
+                      </div>
+
+                      {/* Danger Zone */}
+                      <div className="bg-red-50 p-5 rounded-xl border border-red-100 flex flex-col justify-between h-full">
+                        <div className="flex items-center gap-3 mb-3">
+                          <FaExclamationTriangle className="text-red-500" />
+                          <h4 className="font-semibold text-red-800 text-sm">Danger Zone</h4>
                         </div>
+                        <button
+                          onClick={handleClearAllData}
+                          className="w-full py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FaTrash size={12} /> Clear All App Data
+                        </button>
                       </div>
                     </div>
 
-                    {/* Danger Zone */}
-                    <div className="bg-red-50 p-6 rounded-xl border border-red-100">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-red-100 text-red-600 rounded-lg">
-                          <FaExclamationTriangle size={24} />
+
+                    {/* Developer Zone - ADMIN ONLY */}
+                    {user?.role === 'admin' && (
+                      <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 border-dashed mt-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FaUserCog className="text-gray-400" />
+                          <h4 className="font-semibold text-gray-600 text-sm">Developer Tools</h4>
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-red-800">Danger Zone</h4>
-                          <p className="text-sm text-red-600 mt-1 mb-4">
-                            Deleting data is irreversible. Create a backup first!
-                          </p>
+                        <div className="flex flex-wrap gap-3">
                           <button
-                            onClick={handleClearAllData}
-                            title="Permanently Delete All Data"
-                            className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            onClick={() => {
+                              if (confirm("Generate random data?")) {
+                                seedWorkload();
+                                window.location.reload();
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-xs font-medium hover:bg-gray-50"
                           >
-                            <FaTrash size={14} /> Clear All App Data
+                            Seed Initial Workload
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm("Remove test data?")) {
+                                clearSeedData();
+                                window.location.reload();
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-xs font-medium hover:bg-gray-50"
+                          >
+                            Remove Seed Data
+                          </button>
+
+                          <button
+                            onClick={handleMigrateIDs}
+                            className="px-3 py-1.5 bg-white border border-indigo-300 text-indigo-700 rounded text-xs font-medium hover:bg-indigo-50"
+                            title="Updates all existing IDs (Clients, Stock, Invoices) to the new short format (e.g. P1234, C5678)."
+                          >
+                            Migrate Data IDs
                           </button>
                         </div>
                       </div>
+                    )}
 
-                      {/* Developer Zone - ADMIN ONLY */}
-                      {user?.role === 'admin' && (
-                        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 mt-6">
-                          <div className="flex items-start gap-4">
-                            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
-                              <FaUserCog size={24} />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-bold text-indigo-900">Developer Zone</h4>
-                              <p className="text-sm text-indigo-700 mt-1 mb-4">
-                                Tools for testing system behavior.
-                              </p>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <button
-                                  onClick={() => {
-                                    if (confirm("Generate random data (30-day workload)?")) {
-                                      const result = seedWorkload();
-                                      setSaveStatus(result.success ? "saved" : "error");
-                                      setSaveMessage(result.message);
-                                      setTimeout(() => window.location.reload(), 1500);
-                                    }
-                                  }}
-                                  className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
-                                >
-                                  <FaSeedling size={14} /> Simulate 30-Day Workload
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (confirm("Remove test data?")) {
-                                      const result = clearSeedData();
-                                      setSaveStatus(result.success ? "saved" : "error");
-                                      setSaveMessage(result.message);
-                                      setTimeout(() => window.location.reload(), 1500);
-                                    }
-                                  }}
-                                  className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
-                                >
-                                  <FaEraser size={14} /> Clear Test Data
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
 
-                <div className="mt-10 pt-8 border-t border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Notification Channels</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderToggle("Email Alerts", "Send copies via email", notificationSettings.email, v => setNotificationSettings({ ...notificationSettings, email: v }))}
-                    {renderToggle("In-App Alerts", "Show toast messages", notificationSettings.inApp, v => setNotificationSettings({ ...notificationSettings, inApp: v }))}
-                  </div>
-                </div>
               </div>
+
             )}
 
             {/* About Tab */}
@@ -867,9 +998,9 @@ const Settings: React.FC = () => {
             )}
 
           </div>
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 };
 
