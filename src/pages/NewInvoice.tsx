@@ -1,16 +1,4 @@
-// src/pages/NewInvoice.tsx
-/**
- * New Invoice / Quotation Creator
- * 
- * A comprehensive form interface for generating professional documents.
- * 
- * Key Functionalities:
- * - Inventory Selection: Browse and add items from 'Products', 'Mobilization', and 'Services'.
- * - Dynamic Calculations: Auto-compute Totals and Currency Conversions (USD/Ksh).
- * - Draft Persistence: Uses localStorage to auto-save work in progress (`DRAFT_KEY`).
- * - PDF Generation: Integration with `jspdf` for client-ready documents.
- * - Stock Seeding: Dev tool to populate sample data for testing.
- */
+// Invoice & Quotation Creator
 import { DocumentEngine } from "../utils/DocumentEngine";
 import { SequenceManager } from "../utils/SequenceManager";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
@@ -38,16 +26,12 @@ import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 
-/* ============================
-   Types
-   ============================ */
+// Types
 import type { Invoice, InvoiceType, InvoiceItem as InvoiceLine, Product } from "../types/types";
 
 type Category = "products" | "mobilization" | "services";
 
-/* ============================
-   Constants
-   ============================ */
+// Constants
 const STOCK_KEY = "stockData";
 const DRAFT_KEY = "konsut_newinvoice_draft_vFinal";
 const INVOICES_KEY = "invoices";
@@ -65,24 +49,8 @@ const COMPANY = {
 
 };
 
-/* ============================
-   Toast helper (simple)
-   ============================ */
-type Toast = { id: number; message: string; type?: "success" | "error" | "info" };
 
-const useToasts = () => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const push = (message: string, type: Toast["type"] = "success", ms = 3000) => {
-    const id = Math.floor(Math.random() * 1000000);
-    setToasts((s) => [...s, { id, message, type }]);
-    setTimeout(() => setToasts((s) => s.filter((t) => t.id !== id)), ms);
-  };
-  return { toasts, push, setToasts };
-};
 
-/* ============================
-   Main Component
-   ============================ */
 const NewInvoice: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -130,15 +98,12 @@ const NewInvoice: React.FC = () => {
 
 
 
-  /* ----------------------------
-     Rate & toggles
-     ---------------------------- */
+  // Toggles
   const [usdToKshRate, setUsdToKshRate] = useState<number>(() => {
     const s = localStorage.getItem(USD_TO_KSH_KEY);
     return s ? Number(s) : 130;
   });
 
-  // UI toggles
   const [showDescriptions, setShowDescriptions] = useState<boolean>(true);
   const [includeDescriptionsInPDF, setIncludeDescriptionsInPDF] = useState<boolean>(true);
 
@@ -149,9 +114,7 @@ const NewInvoice: React.FC = () => {
   const [includeTermsAndConditions, setIncludeTermsAndConditions] = useState<boolean>(false);
   const [termsAndConditions, setTermsAndConditions] = useState<string>("1. 60% deposit required to commence work.\n2. Balance due upon completion.\n3. Goods remain property of KONSUT LTD until paid in full.\n4. Warranty covers manufacturing defects only.");
 
-  /* ----------------------------
-     Invoice lines + selection (per-category)
-     ---------------------------- */
+  // Invoice lines
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [selectedId, setSelectedId] = useState<Record<Category, string>>({
     products: "",
@@ -164,14 +127,9 @@ const NewInvoice: React.FC = () => {
     services: 1,
   });
 
-  /* ----------------------------
-     Toasts
-     ---------------------------- */
-  const { toasts, push: pushToast } = useToasts();
 
-  /* ----------------------------
-     Load stock & draft on mount
-     ---------------------------- */
+
+  // Load data
   useEffect(() => {
     // 1. Load global settings
     const ur = localStorage.getItem(USD_TO_KSH_KEY);
@@ -198,7 +156,7 @@ const NewInvoice: React.FC = () => {
       const invoiceToEdit = savedInvoices.find(inv => inv.id === editId);
 
       if (invoiceToEdit) {
-        pushToast(`Loaded ${invoiceToEdit.type} ${invoiceToEdit.id}`, "info");
+        showToast("info", `Loaded ${invoiceToEdit.type} ${invoiceToEdit.id}`);
 
         // Populate State
         setActiveDocumentType(invoiceToEdit.type);
@@ -229,7 +187,7 @@ const NewInvoice: React.FC = () => {
           setIncludeTermsAndConditions(false);
         }
       } else {
-        pushToast("Invoice to edit not found", "error");
+        showToast("error", "Invoice to edit not found");
       }
     } else if (clientIdParam) {
       // --- NEW FROM CLIENT ---
@@ -240,7 +198,7 @@ const NewInvoice: React.FC = () => {
           const clients: any[] = JSON.parse(storedClients);
           const client = clients.find(c => c.id === clientIdParam);
           if (client) {
-            pushToast(`Started new invoice for ${client.name}`, "info");
+            showToast("info", `Started new invoice for ${client.name}`);
             setCustomerId(client.id);
             setCustomerName(client.name);
             setCustomerPhone(client.phone);
@@ -251,7 +209,7 @@ const NewInvoice: React.FC = () => {
             setLines([]);
             setIssuedDate(todayISO);
           } else {
-            pushToast("Client not found", "error");
+            showToast("error", "Client not found");
           }
         } catch (e) {
           console.error("Failed to load client param", e);
@@ -291,9 +249,7 @@ const NewInvoice: React.FC = () => {
     }
   }, [editId, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ----------------------------
-     Comprehensive save function
-     ---------------------------- */
+  // Save draft
   const saveAllData = useCallback((additionalData: any = {}) => {
     const dataToSave = {
       customerId,
@@ -334,9 +290,7 @@ const NewInvoice: React.FC = () => {
     saveAllData();
   }, [saveAllData]);
 
-  /* ----------------------------
-     Validation
-     ---------------------------- */
+  // Validation
   const validateCustomerInfo = () => {
     const errors: Record<string, string> = {};
 
@@ -376,13 +330,13 @@ const NewInvoice: React.FC = () => {
     const id = selectedId[cat];
     const qty = Math.max(1, Math.floor(selectedQty[cat] || 1));
     if (!id) {
-      pushToast("Select an item first", "error");
+      showToast("error", "Select an item first");
       return;
     }
     const arr = getCategoryArray(cat);
     const prod = arr.find((p) => p.id === id);
     if (!prod) {
-      pushToast("Selected item not found in stock", "error");
+      showToast("error", "Selected item not found in stock");
       return;
     }
 
@@ -410,7 +364,7 @@ const NewInvoice: React.FC = () => {
     // reset selection for category
     setSelectedId((s) => ({ ...s, [cat]: "" }));
     setSelectedQty((q) => ({ ...q, [cat]: 1 }));
-    pushToast("Item added", "success");
+    showToast("success", "Item added");
   };
 
   /* ----------------------------
@@ -433,12 +387,10 @@ const NewInvoice: React.FC = () => {
   const removeLine = (index: number) => {
     if (!confirm("Remove this line?")) return;
     setLines((s) => s.filter((_, i) => i !== index));
-    pushToast("Line removed", "info");
+    showToast("info", "Line removed");
   }
 
-  /* ----------------------------
-     Clear Data (does NOT clear stock)
-     ---------------------------- */
+  // Clear Data (keeps stock)
   const clearData = () => {
     if (!confirm("Clear invoice data? This will NOT remove stock items.")) return;
 
@@ -456,23 +408,21 @@ const NewInvoice: React.FC = () => {
       setSelectedId({ products: "", mobilization: "", services: "" });
       setSelectedQty({ products: 1, mobilization: 1, services: 1 });
       setValidationErrors({});
-      pushToast("Invoice cleared", "info");
+      showToast("info", "Invoice cleared");
     } catch (e) {
-      pushToast("Failed to clear data", "error");
+      showToast("error", "Failed to clear data");
     }
   };
 
-  /* ----------------------------
-     Save Document (Finalize)
-     ---------------------------- */
+  // Finalize / Save to DB
   const saveDocument = () => {
     if (!validateCustomerInfo()) {
-      pushToast("Please fix validation errors", "error");
+      showToast("error", "Please fix validation errors");
       return;
     }
 
     if (lines.length === 0) {
-      pushToast("Add at least one item", "error");
+      showToast("error", "Add at least one item");
       return;
     }
 
@@ -535,24 +485,22 @@ const NewInvoice: React.FC = () => {
         timestamp: new Date().toISOString()
       });
 
-      pushToast(`${activeDocumentType.charAt(0).toUpperCase() + activeDocumentType.slice(1)} ${docId} saved successfully`, "success");
+      showToast("success", `${activeDocumentType.charAt(0).toUpperCase() + activeDocumentType.slice(1)} ${docId} saved successfully`);
     } catch (e) {
       console.error("Failed to save document:", e);
-      pushToast("Failed to save document", "error");
+      showToast("error", "Failed to save document");
     }
   };
 
-  /* ----------------------------
-     PDF generation with data saving
-     ---------------------------- */
+  // Generate PDF
   const generatePDF = async () => {
     if (!validateCustomerInfo()) {
-      pushToast("Please fix validation errors", "error");
+      showToast("error", "Please fix validation errors");
       return;
     }
 
     if (lines.length === 0) {
-      pushToast("Add at least one item", "error");
+      showToast("error", "Add at least one item");
       return;
     }
 
@@ -594,7 +542,7 @@ const NewInvoice: React.FC = () => {
         termsAndConditions: includeTermsAndConditions ? termsAndConditions : undefined,
       };
 
-      // --- AUTO-SAVE LOGIC START ---
+      // Auto-save logic
       // We want to save this to the main list as if "Save" was clicked.
       const invoiceObjForSave: Invoice = {
         ...invoiceData,
@@ -614,16 +562,24 @@ const NewInvoice: React.FC = () => {
       }
       localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
 
+      localStorage.setItem(INVOICES_KEY, JSON.stringify(arr));
+
       if (activeDocumentType === 'quotation') {
         localStorage.setItem(LAST_SAVED_QUOTE_KEY, JSON.stringify(invoiceObjForSave));
       }
-      // --- AUTO-SAVE LOGIC END ---
 
-      // Use the professional PDF generator with correct document type
       const pdfDocType = activeDocumentType === 'quotation' ? 'QUOTATION'
         : activeDocumentType === 'proforma' ? 'PROFORMA'
           : 'INVOICE';
-      await generateInvoicePDF(invoiceData as any, pdfDocType as any, { includeDescriptions: includeDescriptionsInPDF });
+
+      await generateInvoicePDF(
+        invoiceData as any,
+        pdfDocType as any,
+        {
+          includeDescriptions: includeDescriptionsInPDF,
+          currency: displayCurrency
+        }
+      );
 
       // Save PDF generation record
       const pdfRecord = {
@@ -648,11 +604,10 @@ const NewInvoice: React.FC = () => {
         timestamp: new Date().toISOString()
       });
 
-      pushToast("PDF generated and saved successfully", "success");
+      showToast("success", "PDF generated and saved successfully");
     } catch (err) {
       console.error("PDF generation failed:", err);
-      pushToast("PDF generation failed", "error");
-      showToast('error', 'PDF generation failed. See console for details');
+      showToast("error", "PDF generation failed. See console for details");
     }
   };
 
@@ -716,7 +671,7 @@ const NewInvoice: React.FC = () => {
     setProducts(sample.products);
     setMobilization(sample.mobilization);
     setServices(sample.services);
-    pushToast("Sample stock seeded", "info");
+    showToast("info", "Sample stock seeded");
   };
 
   /* ----------------------------
@@ -728,7 +683,7 @@ const NewInvoice: React.FC = () => {
     setProducts([]);
     setMobilization([]);
     setServices([]);
-    pushToast("Stock data cleared", "info");
+    showToast("info", "Stock data cleared");
   };
 
   /* ----------------------------
@@ -754,7 +709,7 @@ const NewInvoice: React.FC = () => {
 
     try {
       if (!validateCustomerInfo() || lines.length === 0) {
-        pushToast("Please complete the form first", "error");
+        showToast("error", "Please complete the form first");
         return;
       }
 

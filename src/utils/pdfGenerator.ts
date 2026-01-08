@@ -47,7 +47,7 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
 export const generateInvoicePDF = async (
   invoice: InvoiceData,
   documentType: "INVOICE" | "QUOTATION" | "PROFORMA" = "INVOICE",
-  options: { includeDescriptions?: boolean } = {}
+  options: { includeDescriptions?: boolean; currency?: "Ksh" | "USD" } = {}
 ) => {
   try {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -58,10 +58,20 @@ export const generateInvoicePDF = async (
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
     const boxGap = 5;
-    const primaryColor = [0, 153, 255]; // Brand Blue #0099ff
-    const secondaryColor = [31, 41, 55]; // Gray 800 (Darker)
+    const primaryColor = [0, 153, 255];
+    const secondaryColor = [31, 41, 55];
 
-    // Helper to draw a box with optional header
+    const currency = options.currency || "Ksh";
+    const rate = invoice.currencyRate || 1;
+
+    const formatCurrency = (amount: number) => {
+      if (currency === "USD") {
+        return `$${(amount / rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      return `Ksh ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
+    // Helper to draw box
     const drawBox = (x: number, y: number, w: number, h: number, title?: string) => {
       doc.setDrawColor(200, 200, 200); // Light gray borders
       doc.setLineWidth(0.1);
@@ -77,10 +87,9 @@ export const generateInvoicePDF = async (
       }
     };
 
-    // --- Watermark (Subtle) ---
-    // Removed Status Watermark as requested
+    // Watermark
     doc.saveGraphicsState();
-    doc.setTextColor(245, 245, 245); // Very subtle gray
+    doc.setTextColor(245, 245, 245);
     doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
     const watermarkText = "KONSUT LTD";
@@ -89,7 +98,7 @@ export const generateInvoicePDF = async (
     doc.text(watermarkText, cx, cy, { align: "center", angle: 45 });
     doc.restoreGraphicsState();
 
-    // --- Header Section (Clean Design: Logo Left, Info Right) ---
+    // Header Section
     const headerY = margin;
     const headerHeight = 35; // Keeping height reservation
 
@@ -270,10 +279,9 @@ export const generateInvoicePDF = async (
       options.includeDescriptions && l.description
         ? `${l.name}\n${l.description}`
         : l.name,
-      // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-",
       String(l.quantity),
-      l.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      (l.unitPrice * l.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      formatCurrency(l.unitPrice),
+      formatCurrency(l.unitPrice * l.quantity),
     ]);
 
     autoTable(doc, {
@@ -312,7 +320,7 @@ export const generateInvoicePDF = async (
     const finalY = (doc as any).lastAutoTable?.finalY || 200;
     const footerTopY = finalY + 10;
 
-    // Calculate Payment box height
+    // Calculate Payment box
     const bankDetails = [
       "Bank: I&M BANK",
       "Branch: RUIRU BRANCH",
@@ -321,6 +329,10 @@ export const generateInvoicePDF = async (
       "SWIFT CODE: IMBLKENA",
       "BANK CODE: 57 | BRANCH CODE: 055"
     ];
+    if (currency === "USD") {
+      // Highlight USD account or just put it first? 
+      // For now, standard list is fine as per request, user can read.
+    }
     const paymentHeight = 7 + (bankDetails.length * 4) + 4; // Header + lines + padding
 
     // Calculate Summary box height (Subtotal + VAT + Grand Total bar)
@@ -359,19 +371,17 @@ export const generateInvoicePDF = async (
 
     // Subtotal
     doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0); // Pure Black
+    doc.setTextColor(0, 0, 0);
     doc.text("Subtotal", sumLabelX, y);
-    doc.text(`Ksh ${invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
+    doc.text(formatCurrency(invoice.subtotal), sumValX, y, { align: "right" });
     y += 6;
 
     // VAT
     doc.text(`VAT (16%)`, sumLabelX, y);
-    doc.text(`Ksh ${vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y, { align: "right" });
+    doc.text(formatCurrency(vatAmount), sumValX, y, { align: "right" });
     y += 6;
 
-
-
-    // Grand Total Bar inside the box
+    // Grand Total Bar
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(rightBoxX, y - 4, boxWidth, 10, "F");
 
@@ -379,7 +389,7 @@ export const generateInvoicePDF = async (
     doc.setFont("helvetica", "bold");
     doc.text("Grand Total", sumLabelX, y + 2);
     // Use the calculated total including VAT
-    doc.text(`Ksh ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sumValX, y + 2, { align: "right" });
+    doc.text(formatCurrency(finalTotal), sumValX, y + 2, { align: "right" });
 
     // --- Custom Sections (Responsibilities & Terms) ---
     // Calculate start Y for custom sections (below the lowest box)

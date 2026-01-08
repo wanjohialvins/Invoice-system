@@ -1,19 +1,4 @@
-// src/pages/Stock.tsx
-/**
- * Stock Inventory Manager
- * 
- * A complete inventory management system allowing CRUD operations on products and services.
- * 
- * Key Features:
- * - Categorized Inventory: Products, Mobilization, Services.
- * - Currency Management: Input prices in Ksh or USD with auto-conversion.
- * - Data Persistence: Uses localStorage for stock data and draft forms.
- * - Import/Export: CSV support for bulk data management.
- * 
- * Technical Notes:
- * - 'Merge-on-add' logic prevents duplicate entries by incrementing quantity.
- * - Real-time filtering and search.
- */
+// Stock management
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FaPlus,
@@ -31,9 +16,7 @@ import { STORAGE_KEYS, DEFAULT_RATES } from "../constants";
 import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useKeyboardShortcut } from "../hooks/useUtils";
-/* -------------------------
-   Types & LocalStorage keys
-   ------------------------- */
+
 type Category = "products" | "mobilization" | "services";
 
 export interface StockItem {
@@ -41,19 +24,16 @@ export interface StockItem {
   name: string;
   category: Category;
   quantity: number;
-  priceKsh: number; // unit price in Ksh
-  priceUSD?: number; // unit price in USD (kept for currency sync)
+  priceKsh: number;
+  priceUSD?: number;
   description?: string;
 }
 
-/* -------------------------
-   Utility helpers
-   ------------------------- */
+// Helpers
 
-// Returns today's date as ISO yyyy-mm-dd (useful for inputs and for Quotation)
+// ISO date for inputs
 export const getTodayISO = (): string => new Date().toISOString().slice(0, 10);
 
-// Safe JSON parse helper
 const safeParse = (s: string | null) => {
   try {
     return s ? JSON.parse(s) : null;
@@ -62,29 +42,30 @@ const safeParse = (s: string | null) => {
   }
 };
 
-// ID generator
-const genId = (prefix = "I") => `${prefix}${Math.floor(100000 + Math.random() * 900000)}`;
+
+// ID generator (Short & Uniform)
+const genId = (prefix = "P") => `${prefix.charAt(0).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Convert stock to CSV and trigger download
 const downloadCSV = (stock: Record<Category, StockItem[]>, filename = "stock_export.csv") => {
   const rows: string[] = [];
-  // header
-  rows.push(["id", "name", "category", "quantity", "priceKsh", "priceUSD", "description"].join(","));
-  // flatten
+  // Standardized Format: Category, Name, Quantity, PriceKsh, PriceUSD, Description
+  rows.push(["Category", "Name", "Quantity", "PriceKsh", "PriceUSD", "Description"].join(","));
+
   (Object.keys(stock) as Category[]).forEach((cat) => {
     stock[cat].forEach((it) => {
       const r = [
-        `"${it.id}"`,
-        `"${(it.name || "").replace(/"/g, '""')}"`,
         `"${cat}"`,
+        `"${(it.name || "").replace(/"/g, '""')}"`,
         it.quantity,
         it.priceKsh,
-        it.priceUSD ?? "",
+        it.priceUSD ?? 0,
         `"${(it.description || "").replace(/"/g, '""')}"`,
       ];
       rows.push(r.join(","));
     });
   });
+
   const csv = rows.join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -95,10 +76,7 @@ const downloadCSV = (stock: Record<Category, StockItem[]>, filename = "stock_exp
   URL.revokeObjectURL(url);
 };
 
-/* -------------------------
-   Initializers
-   ------------------------- */
-// Loads stock from storage or falls back to the hardcoded sample data.
+// Initializers
 const getInitialStock = (): Record<Category, StockItem[]> => {
   const raw = localStorage.getItem(STORAGE_KEYS.STOCK);
   if (raw) {
@@ -173,17 +151,11 @@ const getInitialCurrencyRate = (): number => {
   return raw ? Number(raw) : DEFAULT_RATES.CURRENCY;
 };
 
-/* -------------------------
-   Component
-   ------------------------- */
 const Stock: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  /* ---------------------
-     State Management
-     --------------------- */
-  // Primary data Store
+  // State
   const [stock, setStock] = useState<Record<Category, StockItem[]>>(getInitialStock);
   const [activeCategory, setActiveCategory] = useState<Category>("products");
   const [search, setSearch] = useState<string>("");
@@ -194,18 +166,17 @@ const Stock: React.FC = () => {
   // UI Toggles
   const [showDescriptions, setShowDescriptions] = useState<boolean>(true);
 
-  // Form State (Controlled inputs for Add/Edit)
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Form State (Controlled inputs for Add)
   const [formName, setFormName] = useState<string>("");
   const [formQty, setFormQty] = useState<number>(1);
   const [formPriceKsh, setFormPriceKsh] = useState<number>(0);
   const [formPriceUSD, setFormPriceUSD] = useState<number>(0);
   const [formDescription, setFormDescription] = useState<string>("");
 
-  /* ---------------------
-     Effects: Persistence
-     --------------------- */
-  // Saves data to localStorage whenever it changes.
+  // Modal State
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+
+  // Effects
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(stock));
   }, [stock]);
@@ -217,7 +188,6 @@ const Stock: React.FC = () => {
   // Autosave Draft: Persist form state so refresh doesn't lose partially typed data.
   useEffect(() => {
     const draft = {
-      editingId,
       formName,
       formQty,
       formPriceKsh,
@@ -227,13 +197,12 @@ const Stock: React.FC = () => {
       showDescriptions,
     };
     localStorage.setItem(STORAGE_KEYS.DRAFT, JSON.stringify(draft));
-  }, [editingId, formName, formQty, formPriceKsh, formPriceUSD, formDescription, activeCategory, showDescriptions]);
+  }, [formName, formQty, formPriceKsh, formPriceUSD, formDescription, activeCategory, showDescriptions]);
 
   // Restore Draft on Mount
   useEffect(() => {
     const d = safeParse(localStorage.getItem(STORAGE_KEYS.DRAFT));
     if (d) {
-      setEditingId(d.editingId ?? null);
       setFormName(d.formName ?? "");
       setFormQty(d.formQty ?? 1);
       setFormPriceKsh(d.formPriceKsh ?? 0);
@@ -244,11 +213,7 @@ const Stock: React.FC = () => {
     }
   }, []);
 
-  /* ---------------------
-     Computed Values
-     --------------------- */
-
-  // Filter list based on search term and active category
+  // Computed
   const filteredItems = useMemo(() => {
     return stock[activeCategory].filter((it) =>
       it.name.toLowerCase().includes(search.trim().toLowerCase())
@@ -263,10 +228,7 @@ const Stock: React.FC = () => {
   }, [stock]);
 
 
-  /* ---------------------
-     Currency Sync
-     --------------------- */
-  // Updates USD when Ksh changes
+  // Currency sync handlers
   const onKshChangeInForm = (value: number) => {
     setFormPriceKsh(value);
     setFormPriceUSD(Number((value / currencyRate).toFixed(2)));
@@ -284,17 +246,12 @@ const Stock: React.FC = () => {
 
   // Handles both Adding new items and Updating existing ones.
   // Implements 'Merge-on-add' if a duplicate name is detected in the same category.
-  const handleAddOrUpdate = () => {
+  // Actions
+
+  // Handle Add (Top Form)
+  const handleAdd = () => {
     if (!formName.trim()) {
       showToast('warning', 'Please enter a name');
-      return;
-    }
-    if (formPriceKsh < 0) {
-      showToast('warning', 'Enter a valid unit price in Ksh');
-      return;
-    }
-    if (formQty <= 0) {
-      showToast('warning', 'Enter a valid quantity');
       return;
     }
 
@@ -303,38 +260,23 @@ const Stock: React.FC = () => {
       (it) => it.name.trim().toLowerCase() === formName.trim().toLowerCase()
     );
 
-    if (editingId) {
-      // Update existing item
-      const updatedCat = stock[cat].map((it) =>
-        it.id === editingId
-          ? {
-            ...it,
-            name: formName.trim(),
-            quantity: formQty,
-            priceKsh: formPriceKsh,
-            priceUSD: formPriceUSD,
-            description: showDescriptions ? formDescription || undefined : undefined,
-          }
-          : it
-      );
-      setStock({ ...stock, [cat]: updatedCat });
-      setEditingId(null);
-    } else if (existingIndex >= 0) {
-      // Merge with existing item (Increment Qty)
+    if (existingIndex >= 0) {
+      // Merge with existing
       const updated = [...stock[cat]];
       const found = updated[existingIndex];
       const newQty = (found.quantity || 0) + formQty;
       updated[existingIndex] = {
         ...found,
         quantity: newQty,
-        priceKsh: formPriceKsh, // Updates to latest price
-        priceUSD: formPriceUSD,
+        priceKsh: formPriceKsh || found.priceKsh,
+        priceUSD: formPriceUSD || found.priceUSD,
         description: showDescriptions ? formDescription || found.description : undefined,
       };
       setStock({ ...stock, [cat]: updated });
+      showToast('info', 'Merged with existing item');
     } else {
-      // Create new item
-      const id = genId(cat[0].toUpperCase());
+      // Create new
+      const id = genId(cat === 'products' ? 'P' : cat === 'mobilization' ? 'M' : 'S');
       const newItem: StockItem = {
         id,
         name: formName.trim(),
@@ -345,6 +287,7 @@ const Stock: React.FC = () => {
         description: showDescriptions ? formDescription || undefined : undefined,
       };
       setStock({ ...stock, [cat]: [...stock[cat], newItem] });
+      showToast('success', 'Item added');
     }
 
     // Reset Form
@@ -353,19 +296,25 @@ const Stock: React.FC = () => {
     setFormPriceKsh(0);
     setFormPriceUSD(0);
     setFormDescription("");
-    setEditingId(null);
+  };
+
+  // Handle Update (Modal Form)
+  const handleUpdateSubmit = () => {
+    if (!editingItem) return;
+
+    const cat = editingItem.category;
+    const updatedList = stock[cat].map(it =>
+      it.id === editingItem.id ? editingItem : it
+    );
+
+    setStock({ ...stock, [cat]: updatedList });
+    setEditingItem(null);
+    showToast('success', 'Item updated');
   };
 
   // Populate form for editing
   const handleEdit = (it: StockItem) => {
-    setActiveCategory(it.category);
-    setEditingId(it.id);
-    setFormName(it.name);
-    setFormQty(it.quantity || 1);
-    setFormPriceKsh(it.priceKsh || 0);
-    setFormPriceUSD(it.priceUSD ?? Number(((it.priceKsh || 0) / currencyRate).toFixed(2)));
-    setFormDescription(it.description || "");
-    if (it.description) setShowDescriptions(true);
+    setEditingItem(it);
   };
 
   // Remove item
@@ -391,7 +340,6 @@ const Stock: React.FC = () => {
     setFormPriceKsh(0);
     setFormPriceUSD(0);
     setFormDescription("");
-    setEditingId(null);
   };
 
   /* ---------------------
@@ -413,6 +361,7 @@ const Stock: React.FC = () => {
       if (!text) return;
 
       const lines = text.split(/\r?\n/);
+      // Skip header if present (simple check for 'name' or 'category')
       const startIndex = lines[0].toLowerCase().includes("name") ? 1 : 0;
 
       const newItems: Record<Category, StockItem[]> = { products: [], mobilization: [], services: [] };
@@ -424,21 +373,35 @@ const Stock: React.FC = () => {
 
         const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
 
-        if (cols.length < 2) continue;
+        // Expected Format V2: Category, Name, PriceKsh, PriceUSD, Description (Flexible)
+        // We will try to be smart about column mapping
 
-        const catRaw = cols[0].toLowerCase();
+        let catRaw = cols[0].toLowerCase();
+        let name = cols[1] || "Unknown Item";
+        let qty = 1;
+        let pKsh = 0;
+        let pUsd = 0;
+        let desc = "";
+
+        // Check columns for new format: Category, Name, Qty, PriceKsh, PriceUSD, Desc
+        if (cols.length >= 3) qty = parseFloat(cols[2]) || 1;
+        if (cols.length >= 4) pKsh = parseFloat(cols[3]) || 0;
+        if (cols.length >= 5) pUsd = parseFloat(cols[4]) || 0;
+        if (cols.length >= 6) desc = cols[5] || "";
+
         let cat: Category = "products";
         if (catRaw.includes("mob")) cat = "mobilization";
         else if (catRaw.includes("serv")) cat = "services";
 
+        // Auto-generate ID without requiring it in CSV
         const newItem: StockItem = {
-          id: `IMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          name: cols[1],
+          id: genId(cat === 'products' ? 'P' : cat === 'mobilization' ? 'M' : 'S'),
+          name: name,
           category: cat,
-          quantity: 1,
-          priceKsh: parseFloat(cols[2]) || 0,
-          priceUSD: parseFloat(cols[3]) || 0,
-          description: cols[4] || ""
+          quantity: qty,
+          priceKsh: pKsh,
+          priceUSD: pUsd,
+          description: desc
         };
 
         newItems[cat].push(newItem);
@@ -613,14 +576,14 @@ const Stock: React.FC = () => {
         </button>
       </div>
 
-      {/* Add / Edit form */}
+      {/* Add Item Form (Always Add) */}
       <div className="border rounded bg-white dark:bg-midnight-800 p-4 mb-6 shadow-sm dark:border-midnight-700">
-        <h2 className="text-lg font-semibold mb-2">{editingId ? "Edit Item" : "Add Item"} • {activeCategory}</h2>
+        <h2 className="text-lg font-semibold mb-2">Add New Item • {activeCategory}</h2>
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleAddOrUpdate();
+            handleAdd();
           }}
           className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
         >
@@ -631,7 +594,7 @@ const Stock: React.FC = () => {
               onChange={(e) => setFormName(e.target.value)}
               className="border px-2 py-1 rounded w-full"
               placeholder="Item name"
-              required // HTML5 validation help
+              required
             />
           </div>
 
@@ -652,9 +615,14 @@ const Stock: React.FC = () => {
               type="number"
               min={0}
               step="0.01"
-              value={formPriceKsh}
-              onChange={(e) => onKshChangeInForm(Number(e.target.value || 0))}
+              value={formPriceKsh || ""}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setFormPriceKsh(val);
+                setFormPriceUSD(val ? Number((val / currencyRate).toFixed(2)) : 0);
+              }}
               className="border px-2 py-1 rounded w-full"
+              placeholder="0"
             />
           </div>
 
@@ -664,16 +632,21 @@ const Stock: React.FC = () => {
               type="number"
               min={0}
               step="0.01"
-              value={formPriceUSD}
-              onChange={(e) => onUsdChangeInForm(Number(e.target.value || 0))}
+              value={formPriceUSD || ""}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setFormPriceUSD(val);
+                setFormPriceKsh(val ? Number((val * currencyRate).toFixed(2)) : 0);
+              }}
               className="border px-2 py-1 rounded w-full"
+              placeholder="0"
             />
           </div>
 
           <div className="flex gap-2">
             <button
               type="submit"
-              title={editingId ? "Update item" : "Add item"}
+              title="Add item"
               className="p-2 rounded bg-brand-600 hover:bg-brand-700 text-white transition-colors"
             >
               <FaPlus />
@@ -681,8 +654,8 @@ const Stock: React.FC = () => {
 
             <button
               type="button"
-              title="Reset form"
-              onClick={() => { setEditingId(null); setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormDescription(""); }}
+              title="Clear form"
+              onClick={() => { setFormName(""); setFormQty(1); setFormPriceKsh(0); setFormPriceUSD(0); setFormDescription(""); }}
               className="p-2 rounded bg-gray-200 text-gray-800"
             >
               <FaTrash />
@@ -696,13 +669,112 @@ const Stock: React.FC = () => {
               <textarea
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
-                rows={3}
+                rows={2}
                 className="border px-2 py-1 rounded w-full"
               />
             </div>
           )}
         </form>
       </div>
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-up">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-800">Edit Item</h3>
+              <button onClick={() => setEditingItem(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdateSubmit(); }} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                <input
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editingItem.quantity}
+                    onChange={(e) => setEditingItem({ ...editingItem, quantity: Number(e.target.value) })}
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (Ksh)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingItem.priceKsh ?? ""}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingItem({
+                        ...editingItem,
+                        priceKsh: val,
+                        priceUSD: val ? Number((val / currencyRate).toFixed(2)) : 0
+                      });
+                    }}
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingItem.priceUSD ?? ""}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingItem({
+                        ...editingItem,
+                        priceUSD: val,
+                        priceKsh: val ? Number((val * currencyRate).toFixed(2)) : 0
+                      });
+                    }}
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={editingItem.description || ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-white bg-brand-600 hover:bg-brand-700 rounded-lg font-medium shadow-md shadow-brand-500/20 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="flex items-center gap-2 mb-4">
