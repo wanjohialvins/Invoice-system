@@ -50,28 +50,45 @@ export const generateInvoicePDF = async (
   options: { includeDescriptions?: boolean; currency?: "Ksh" | "USD" } = {}
 ) => {
   try {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const COMPANY = getCompanySettings();
     const SETTINGS = getInvoiceSettings();
+    const doc = new jsPDF({
+      unit: "mm",
+      format: SETTINGS.pageSize || "a4",
+      orientation: SETTINGS.pageOrientation || "portrait"
+    });
+    const COMPANY = getCompanySettings();
+    const currency = options.currency || "Ksh";
+    const rate = invoice.currencyRate || 1;
+
+    // Helper to format currency
+    const formatCurrency = (val: number) => {
+      const amount = currency === "USD" ? val / rate : val;
+      const options: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+      if (SETTINGS.numberFormat === "compact") {
+        options.notation = "compact";
+        options.compactDisplay = "short";
+      }
+
+      return amount.toLocaleString(undefined, options);
+    };
+
+    const fontMapping: { [key: string]: string } = {
+      "Helvetica": "helvetica",
+      "Courier New": "courier",
+      "Times New Roman": "times"
+    };
+    const font = fontMapping[SETTINGS.fontFamily] || "helvetica";
+
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
     const boxGap = 5;
-    const primaryColor = [0, 153, 255];
-    const secondaryColor = [31, 41, 55];
+    const primaryColor = [0, 153, 255]; // Brand Blue #0099ff
+    const secondaryColor = [31, 41, 55]; // Gray 800 (Darker)
 
-    const currency = options.currency || "Ksh";
-    const rate = invoice.currencyRate || 1;
-
-    const formatCurrency = (amount: number) => {
-      if (currency === "USD") {
-        return `$${(amount / rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      }
-      return `Ksh ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    };
-
-    // Helper to draw box
+    // Helper to draw a box with optional header
     const drawBox = (x: number, y: number, w: number, h: number, title?: string) => {
       doc.setDrawColor(200, 200, 200); // Light gray borders
       doc.setLineWidth(0.1);
@@ -80,72 +97,67 @@ export const generateInvoicePDF = async (
       if (title) {
         doc.setFillColor(240, 240, 240); // Light gray header bg
         doc.rect(x, y, w, 7, "F");
-        doc.setFont("helvetica", "bold");
+        doc.setFont(font, "bold");
         doc.setFontSize(9);
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]); // Blue title
         doc.text(title, x + 3, y + 5);
       }
     };
 
-    // Watermark
-    doc.saveGraphicsState();
-    doc.setTextColor(245, 245, 245);
-    doc.setFontSize(60);
-    doc.setFont("helvetica", "bold");
-    const watermarkText = "KONSUT LTD";
-    const cx = pageWidth / 2;
-    const cy = pageHeight / 2;
-    doc.text(watermarkText, cx, cy, { align: "center", angle: 45 });
-    doc.restoreGraphicsState();
+    // --- Watermark (Subtle) ---
+    if (SETTINGS.includeWatermark) {
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.1 }));
+      doc.setTextColor(200, 200, 200);
+      doc.setFontSize(60);
+      doc.setFont(font, "bold");
+      const watermarkText = COMPANY.name || "KONSUT LTD";
+      const cx = pageWidth / 2;
+      const cy = pageHeight / 2;
+      doc.text(watermarkText, cx, cy, { align: "center", angle: 45 });
+      doc.restoreGraphicsState();
+    }
 
-    // Header Section
+    // --- Header Section (Clean Design: Logo Left, Info Right) ---
     const headerY = margin;
     const headerHeight = 35; // Keeping height reservation
 
     // LEFT: Logo
-    const logoInfo = await loadImageAsDataURL(logo);
-    if (logoInfo) {
-      // Calculate aspect ratio to prevent compression/distortion
-      const maxW = 80; // Allow it to be wider
-      const maxH = 40; // Allow it to be taller
-      const aspect = logoInfo.width / logoInfo.height;
-
-      let imgW = maxW;
-      let imgH = maxW / aspect;
-
-      if (imgH > maxH) {
-        imgH = maxH;
-        imgW = maxH * aspect;
+    if (SETTINGS.includeHeader) {
+      const logoInfo = await loadImageAsDataURL(logo);
+      if (logoInfo) {
+        const maxW = 80;
+        const maxH = 40;
+        const aspect = logoInfo.width / logoInfo.height;
+        let imgW = maxW;
+        let imgH = maxW / aspect;
+        if (imgH > maxH) { imgH = maxH; imgW = maxH * aspect; }
+        doc.addImage(logoInfo.data, "PNG", margin, headerY, imgW, imgH);
       }
-
-      doc.addImage(logoInfo.data, "PNG", margin, headerY, imgW, imgH);
     }
 
     // RIGHT: Company Info
-    const rightMargin = pageWidth - margin;
-    let y = headerY + 5;
-
-    // Company Name
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20); // Larger for emphasis
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(COMPANY.name, rightMargin, y, { align: "right" });
-
-    // Company Details
-    y += 7;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-
-    doc.text(COMPANY.address1, rightMargin, y, { align: "right" });
-    y += 5;
-    doc.text(COMPANY.address2, rightMargin, y, { align: "right" });
-    y += 5;
-    doc.text(`Phone: ${COMPANY.phone}`, rightMargin, y, { align: "right" });
-    y += 5;
-    doc.text(`Email: ${COMPANY.email}`, rightMargin, y, { align: "right" });
-    y += 5;
-    doc.text(`PIN: ${COMPANY.pin}`, rightMargin, y, { align: "right" });
+    if (SETTINGS.includeCompanyDetails) {
+      const rightMargin = pageWidth - margin;
+      let y = headerY + 5;
+      doc.setFont(font, "bold");
+      doc.setFontSize(20);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(COMPANY.name, rightMargin, y, { align: "right" });
+      y += 7;
+      doc.setFont(font, "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text(COMPANY.address1, rightMargin, y, { align: "right" });
+      y += 5;
+      doc.text(COMPANY.address2, rightMargin, y, { align: "right" });
+      y += 5;
+      doc.text(`Phone: ${COMPANY.phone}`, rightMargin, y, { align: "right" });
+      y += 5;
+      doc.text(`Email: ${COMPANY.email}`, rightMargin, y, { align: "right" });
+      y += 5;
+      doc.text(`PIN: ${COMPANY.pin}`, rightMargin, y, { align: "right" });
+    }
 
     // --- Title Bar (Full Width Blue) ---
     // Added a bit more spacing after the header info
@@ -154,7 +166,7 @@ export const generateInvoicePDF = async (
     doc.rect(margin, titleY, pageWidth - (margin * 2), 10, "F");
 
     doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(font, "bold");
     doc.setFontSize(14);
     doc.text(
       documentType === 'INVOICE' ? 'INVOICE'
@@ -193,21 +205,21 @@ export const generateInvoicePDF = async (
     const maxDetailsHeight = Math.max(billToHeight, detailsHeight);
 
     // Box 1: Bill To
-    drawBox(margin, detailsY, boxWidth, maxDetailsHeight, "Bill To:");
-
-    y = detailsY + 12; // Start below header
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0); // Pure Black
-
-    if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id}`, margin + 4, y); y += 4; }
-    doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
-    if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone}`, margin + 4, y); y += 4; }
-    if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email}`, margin + 4, y); y += 4; }
-    if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin}`, margin + 4, y); y += 4; }
-    if (invoice.customer.address) {
-      const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
-      doc.text(addrLines, margin + 4, y);
+    if (SETTINGS.includeCustomerDetails) {
+      drawBox(margin, detailsY, boxWidth, maxDetailsHeight, "Bill To:");
+      y = detailsY + 12;
+      doc.setFont(font, "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id}`, margin + 4, y); y += 4; }
+      doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
+      if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone}`, margin + 4, y); y += 4; }
+      if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email}`, margin + 4, y); y += 4; }
+      if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin}`, margin + 4, y); y += 4; }
+      if (invoice.customer.address) {
+        const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
+        doc.text(addrLines, margin + 4, y);
+      }
     }
 
 
@@ -227,8 +239,8 @@ export const generateInvoicePDF = async (
 
 
     const printRow = (label: string, value: string, color?: number[]) => {
-      doc.setTextColor(0, 0, 0); // Pure Black
-      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(font, "normal");
       doc.text(label, labelX, y);
       if (color) doc.setTextColor(color[0], color[1], color[2]);
       doc.text(value, valX, y);
@@ -250,15 +262,16 @@ export const generateInvoicePDF = async (
     }
 
     // --- Barcode (Under Due Date) ---
-    try {
-      const barcodeData = generateBarcode(invoice.id);
-      const barcodeWidth = 40;
-      const barcodeHeight = 10;
-      // Center barcode in the box below the text
-      const barcodeX = rightBoxX + (boxWidth - barcodeWidth) / 2;
-      doc.addImage(barcodeData, "PNG", barcodeX, y + 2, barcodeWidth, barcodeHeight);
-    } catch (e) {
-      console.warn("Barcode generation failed", e);
+    if (SETTINGS.includeBarcode) {
+      try {
+        const barcodeData = generateBarcode(invoice.id);
+        const barcodeWidth = 40;
+        const barcodeHeight = 10;
+        const barcodeX = rightBoxX + (boxWidth - barcodeWidth) / 2;
+        doc.addImage(barcodeData, "PNG", barcodeX, y + 2, barcodeWidth, barcodeHeight);
+      } catch (e) {
+        console.warn("Barcode generation failed", e);
+      }
     }
 
     // Status (Removed from PDF as requested, but keeping code if needed later commented out)
@@ -279,6 +292,7 @@ export const generateInvoicePDF = async (
       options.includeDescriptions && l.description
         ? `${l.name}\n${l.description}`
         : l.name,
+      // l.category ? (l.category.charAt(0).toUpperCase() + l.category.slice(1)) : "-",
       String(l.quantity),
       formatCurrency(l.unitPrice),
       formatCurrency(l.unitPrice * l.quantity),
@@ -290,11 +304,11 @@ export const generateInvoicePDF = async (
       body: tableBody,
       theme: "grid",
       styles: {
-        fontSize: 9,
+        fontSize: SETTINGS.fontSize || 9,
         cellPadding: 3,
-        font: "helvetica",
-        textColor: [0, 0, 0], // Pure Black
-        lineColor: [150, 150, 150], // Darker Grid
+        font: font,
+        textColor: [0, 0, 0],
+        lineColor: [150, 150, 150],
         lineWidth: 0.1,
       },
       headStyles: {
@@ -304,11 +318,10 @@ export const generateInvoicePDF = async (
         halign: "center",
       },
       columnStyles: {
-        0: { halign: "left" }, // Desc
-        1: { halign: "center" }, // Qty (shifted index)
-        2: { halign: "right" }, // Price
-        3: { halign: "right" }, // Total
-        4: { halign: "right" }, // Freight
+        0: { halign: "left" },
+        1: { halign: "center" },
+        2: { halign: "right" },
+        3: { halign: "right" },
       },
       alternateRowStyles: {
         fillColor: [245, 247, 250], // slightly darker zebra
@@ -320,19 +333,15 @@ export const generateInvoicePDF = async (
     const finalY = (doc as any).lastAutoTable?.finalY || 200;
     const footerTopY = finalY + 10;
 
-    // Calculate Payment box
+    // Calculate Payment box height
     const bankDetails = [
       "Bank: I&M BANK",
       "Branch: RUIRU BRANCH",
-      "Account No (KSH): 05507023236350",
-      "Account No (USD): 05507023231250",
+      `Account No (KSH): 05507023236350`,
+      `Account No (USD): 05507023231250`,
       "SWIFT CODE: IMBLKENA",
       "BANK CODE: 57 | BRANCH CODE: 055"
     ];
-    if (currency === "USD") {
-      // Highlight USD account or just put it first? 
-      // For now, standard list is fine as per request, user can read.
-    }
     const paymentHeight = 7 + (bankDetails.length * 4) + 4; // Header + lines + padding
 
     // Calculate Summary box height (Subtotal + VAT + Grand Total bar)
@@ -346,16 +355,17 @@ export const generateInvoicePDF = async (
     }
 
     // Payment Box (Left)
-    drawBox(margin, footerTopY, boxWidth, maxFooterHeight, "Payment Details");
-
-    y = footerTopY + 12;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0); // Pure Black
-    bankDetails.forEach(line => {
-      doc.text(line, margin + 4, y);
-      y += 4;
-    });
+    if (SETTINGS.includePaymentDetails) {
+      drawBox(margin, footerTopY, boxWidth, maxFooterHeight, "Payment Details");
+      y = footerTopY + 12;
+      doc.setFont(font, "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      bankDetails.forEach(line => {
+        doc.text(line, margin + 4, y);
+        y += 4;
+      });
+    }
 
     // Summary Box (Right)
     drawBox(rightBoxX, footerTopY, boxWidth, maxFooterHeight, "Summary");
@@ -373,23 +383,25 @@ export const generateInvoicePDF = async (
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
     doc.text("Subtotal", sumLabelX, y);
-    doc.text(formatCurrency(invoice.subtotal), sumValX, y, { align: "right" });
+    doc.text(`${currency} ${formatCurrency(invoice.subtotal)}`, sumValX, y, { align: "right" });
     y += 6;
 
     // VAT
     doc.text(`VAT (16%)`, sumLabelX, y);
-    doc.text(formatCurrency(vatAmount), sumValX, y, { align: "right" });
+    doc.text(`${currency} ${formatCurrency(vatAmount)}`, sumValX, y, { align: "right" });
     y += 6;
 
-    // Grand Total Bar
+
+
+    // Grand Total Bar inside the box
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(rightBoxX, y - 4, boxWidth, 10, "F");
 
     doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(font, "bold");
     doc.text("Grand Total", sumLabelX, y + 2);
     // Use the calculated total including VAT
-    doc.text(formatCurrency(finalTotal), sumValX, y + 2, { align: "right" });
+    doc.text(`${currency} ${formatCurrency(finalTotal)}`, sumValX, y + 2, { align: "right" });
 
     // --- Custom Sections (Responsibilities & Terms) ---
     // Calculate start Y for custom sections (below the lowest box)
@@ -402,13 +414,13 @@ export const generateInvoicePDF = async (
         customY = margin;
       }
 
-      doc.setFont("helvetica", "bold");
+      doc.setFont(font, "bold");
       doc.setFontSize(10);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.text(title, margin, customY);
       customY += 5;
 
-      doc.setFont("helvetica", "normal");
+      doc.setFont(font, "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
 
@@ -426,12 +438,14 @@ export const generateInvoicePDF = async (
     }
 
     // --- Footer Text ---
-    const footerParamsY = pageHeight - 12;
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(50, 50, 50); // Darker gray for footer
-    const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya";
-    doc.text(disclaimer, pageWidth / 2, footerParamsY - 5, { align: "center" });
+    if (SETTINGS.includeFooter) {
+      const footerParamsY = pageHeight - 12;
+      doc.setFont(font, "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(50, 50, 50);
+      const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya";
+      doc.text(disclaimer, pageWidth / 2, footerParamsY - 5, { align: "center" });
+    }
 
     // Page Numbers
     const pageCount = doc.getNumberOfPages();
