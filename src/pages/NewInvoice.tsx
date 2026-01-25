@@ -21,7 +21,9 @@ import {
   FaMapMarkerAlt,
   FaPhone,
   FaEnvelope,
-  FaTimes
+  FaTimes,
+  FaArrowUp,
+  FaArrowDown
 } from "react-icons/fa";
 import { FiBox, FiTruck, FiTool } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
@@ -411,6 +413,24 @@ const NewInvoice: React.FC = () => {
     setLines((s) => s.filter((_, i) => i !== index));
     showToast("info", "Line removed");
   }
+
+  const moveLineUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...lines];
+    const temp = updated[index];
+    updated[index] = updated[index - 1];
+    updated[index - 1] = temp;
+    setLines(updated);
+  };
+
+  const moveLineDown = (index: number) => {
+    if (index === lines.length - 1) return;
+    const updated = [...lines];
+    const temp = updated[index];
+    updated[index] = updated[index + 1];
+    updated[index + 1] = temp;
+    setLines(updated);
+  };
 
   // Clear Data (keeps stock)
   const clearData = () => {
@@ -1127,9 +1147,31 @@ const NewInvoice: React.FC = () => {
                             }
                           </td>
                           <td className="p-3 text-center">
-                            <button onClick={() => removeLine(idx)} title="Remove Item" className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
-                              <FaTrash />
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => moveLineUp(idx)}
+                                disabled={idx === 0}
+                                title="Move Up"
+                                className={`p-2 rounded-full transition-colors ${idx === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                              >
+                                <FaArrowUp size={12} />
+                              </button>
+                              <button
+                                onClick={() => moveLineDown(idx)}
+                                disabled={idx === lines.length - 1}
+                                title="Move Down"
+                                className={`p-2 rounded-full transition-colors ${idx === lines.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                              >
+                                <FaArrowDown size={12} />
+                              </button>
+                              <button
+                                onClick={() => removeLine(idx)}
+                                title="Remove Item"
+                                className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

@@ -121,6 +121,7 @@ export const generateInvoicePDF = async (
     // --- Header Section (Clean Design: Logo Left, Info Right) ---
     const headerY = margin;
     const headerHeight = 35; // Keeping height reservation
+    let y = headerY;
 
     // LEFT: Logo
     if (SETTINGS.includeHeader) {
@@ -139,24 +140,24 @@ export const generateInvoicePDF = async (
     // RIGHT: Company Info
     if (SETTINGS.includeCompanyDetails) {
       const rightMargin = pageWidth - margin;
-      let y = headerY + 5;
+      y = headerY + 5;
       doc.setFont(font, "bold");
       doc.setFontSize(20);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(COMPANY.name, rightMargin, y, { align: "right" });
+      doc.text(String(COMPANY.name || ""), rightMargin, y, { align: "right" });
       y += 7;
       doc.setFont(font, "normal");
       doc.setFontSize(10);
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      doc.text(COMPANY.address1, rightMargin, y, { align: "right" });
+      doc.text(String(COMPANY.address1 || ""), rightMargin, y, { align: "right" });
       y += 5;
-      doc.text(COMPANY.address2, rightMargin, y, { align: "right" });
+      doc.text(String(COMPANY.address2 || ""), rightMargin, y, { align: "right" });
       y += 5;
-      doc.text(`Phone: ${COMPANY.phone}`, rightMargin, y, { align: "right" });
+      doc.text(`Phone: ${COMPANY.phone || ""}`, rightMargin, y, { align: "right" });
       y += 5;
-      doc.text(`Email: ${COMPANY.email}`, rightMargin, y, { align: "right" });
+      doc.text(`Email: ${COMPANY.email || ""}`, rightMargin, y, { align: "right" });
       y += 5;
-      doc.text(`PIN: ${COMPANY.pin}`, rightMargin, y, { align: "right" });
+      doc.text(`PIN: ${COMPANY.pin || ""}`, rightMargin, y, { align: "right" });
     }
 
     // --- Title Bar (Full Width Blue) ---
@@ -211,13 +212,13 @@ export const generateInvoicePDF = async (
       doc.setFont(font, "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
-      if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id}`, margin + 4, y); y += 4; }
+      if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id || ""}`, margin + 4, y); y += 4; }
       doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
-      if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone}`, margin + 4, y); y += 4; }
-      if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email}`, margin + 4, y); y += 4; }
-      if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin}`, margin + 4, y); y += 4; }
+      if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone || ""}`, margin + 4, y); y += 4; }
+      if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email || ""}`, margin + 4, y); y += 4; }
+      if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin || ""}`, margin + 4, y); y += 4; }
       if (invoice.customer.address) {
-        const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
+        const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address || ""}`, boxWidth - 8);
         doc.text(addrLines, margin + 4, y);
       }
     }
@@ -251,14 +252,14 @@ export const generateInvoicePDF = async (
       documentType === 'INVOICE' ? "Invoice No:"
         : documentType === 'QUOTATION' ? "Quotation No:"
           : "Proforma No:",
-      invoice.id
+      String(invoice.id || "")
     );
-    printRow("Issued Date:", invoice.issuedDate || new Date().toISOString().split('T')[0]);
+    printRow("Issued Date:", String(invoice.issuedDate || new Date().toISOString().split('T')[0]));
 
     if (documentType === 'QUOTATION' && invoice.quotationValidUntil) {
-      printRow("Valid Until:", invoice.quotationValidUntil);
+      printRow("Valid Until:", String(invoice.quotationValidUntil || ""));
     } else if (invoice.dueDate) {
-      printRow("Due Date:", invoice.dueDate);
+      printRow("Due Date:", String(invoice.dueDate || ""));
     }
 
     // --- Barcode (Under Due Date) ---
@@ -417,24 +418,24 @@ export const generateInvoicePDF = async (
       doc.setFont(font, "bold");
       doc.setFontSize(10);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(title, margin, customY);
+      doc.text(String(title), margin, customY);
       customY += 5;
 
       doc.setFont(font, "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
 
-      const lines = doc.splitTextToSize(content, pageWidth - (margin * 2));
+      const lines = doc.splitTextToSize(String(content), pageWidth - (margin * 2));
       doc.text(lines, margin, customY);
       customY += (lines.length * 4) + 8; // Spacing for next section
     };
 
     if (invoice.clientResponsibilities) {
-      printCustomSection("Client Responsibilities", invoice.clientResponsibilities);
+      printCustomSection("Client Responsibilities", String(invoice.clientResponsibilities));
     }
 
     if (invoice.termsAndConditions) {
-      printCustomSection("Terms & Conditions", invoice.termsAndConditions);
+      printCustomSection("Terms & Conditions", String(invoice.termsAndConditions));
     }
 
     // --- Footer Text ---
@@ -444,7 +445,7 @@ export const generateInvoicePDF = async (
       doc.setFontSize(8);
       doc.setTextColor(50, 50, 50);
       const disclaimer = SETTINGS.footerText || "If you have any questions about this invoice, please contact: Tel: +254 700 420 897 | Email: info@konsut.co.ke | Ruiru, Kenya";
-      doc.text(disclaimer, pageWidth / 2, footerParamsY - 5, { align: "center" });
+      doc.text(String(disclaimer), pageWidth / 2, footerParamsY - 5, { align: "center" });
     }
 
     // Page Numbers
