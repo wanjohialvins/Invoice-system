@@ -31,7 +31,15 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
 
         {/* Title */}
         <div className="flex items-center gap-3">
-          <img src={getCompanySettings().logoPath || logo} alt="Logo" className="h-8 w-8 rounded-full object-contain bg-white shadow-sm" />
+          <img
+            src={getCompanySettings().logoPath || logo}
+            onError={(e) => {
+              e.currentTarget.src = logo;
+              e.currentTarget.onerror = null;
+            }}
+            alt="Logo"
+            className="h-8 w-8 rounded-full object-contain bg-white shadow-sm"
+          />
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-midnight-text-primary">KONSUT</h1>
           <span className="hidden md:inline-block px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 text-xs font-semibold rounded-full">
             Enterprise Plan

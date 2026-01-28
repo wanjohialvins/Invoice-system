@@ -18,46 +18,43 @@ const generateBarcode = (text: string): string => {
   return canvas.toDataURL("image/png");
 };
 
-const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number; height: number } | null> =>
-  new Promise((resolve) => {
-    if (!src) return resolve(null);
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
+const loadImageAsDataURL = async (src: string): Promise<{ data: string; width: number; height: number } | null> => {
+  try {
+    if (!src) return null;
 
-    // Timeout safety - resolve null if loading takes too long (3s)
-    const timeout = setTimeout(() => {
-      console.warn("Logo load timed out:", src);
-      resolve(null);
-    }, 3000);
+    // Direct Data URI handling
+    if (src.startsWith('data:')) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ data: src, width: img.width, height: img.height });
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
 
-    img.onload = () => {
-      clearTimeout(timeout);
-      try {
-        const c = document.createElement("canvas");
-        c.width = img.width;
-        c.height = img.height;
-        const ctx = c.getContext("2d");
-        if (!ctx) return resolve(null);
-        ctx.drawImage(img, 0, 0);
-        resolve({
-          data: c.toDataURL("image/png"),
-          width: img.width,
-          height: img.height
-        });
-      } catch (e) {
-        console.warn("Logo processing failed:", e);
-        resolve(null);
-      }
-    };
+    // Fetch Blob
+    const response = await fetch(src, { mode: 'cors' });
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+    const blob = await response.blob();
 
-    img.onerror = () => {
-      clearTimeout(timeout);
-      console.warn("Logo load failed:", src);
-      resolve(null);
-    };
-
-    img.src = src;
-  });
+    // Convert to Base64
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        const img = new Image();
+        img.onload = () => resolve({ data: base64data, width: img.width, height: img.height });
+        img.onerror = () => resolve(null);
+        img.src = base64data;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn("Logo loading failed:", err);
+    return null;
+  }
+};
 
 class LayoutCursor {
   private _y: number;

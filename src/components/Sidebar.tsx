@@ -57,6 +57,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="flex items-center group cursor-pointer hover:scale-105 transition-transform duration-200">
           <img
             src={logoUrl}
+            onError={(e) => {
+              e.currentTarget.src = logo;
+              e.currentTarget.onerror = null; // prevent loop
+            }}
             alt="Konsut Logo"
             className="h-20 w-auto object-contain rounded-md shadow-lg shadow-black/20"
           />
