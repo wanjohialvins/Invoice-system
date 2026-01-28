@@ -122,7 +122,7 @@ const DEFAULT_COMPANY: CompanyInfo = {
   phone: "+254 700 420 897",
   email: "info@konsut.co.ke",
   pin: "P052435869T",
-  logoPath: "/src/assets/logo.jpg",
+  logoPath: logo,
 };
 
 const DEFAULT_INVOICE_SETTINGS: InvoiceSettings = {
@@ -228,6 +228,13 @@ const Settings: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  // Auto-fix legacy default logo path
+  useEffect(() => {
+    if (company.logoPath === "/src/assets/logo.jpg") {
+      setCompany(prev => ({ ...prev, logoPath: logo }));
+    }
+  }, [company.logoPath]);
 
   // Apply Theme Helper
   const applyThemeChange = (themeMode: 'light' | 'dark' | 'auto') => {
@@ -785,7 +792,7 @@ const Settings: React.FC = () => {
                         value={company.logoPath}
                         onChange={(e) => setCompany({ ...company, logoPath: e.target.value })}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:border-[#0099ff] outline-none"
-                        placeholder="/src/assets/logo.jpg"
+                        placeholder="Image URL"
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-2">Enter the asset path or URL. Recommended size: 200x120px</p>

@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { FiHome, FiFileText, FiUsers, FiSettings, FiPackage, FiBarChart2, FiX, FiLogOut } from "react-icons/fi";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useAuth } from "../contexts/AuthContext";
+import { getCompanySettings } from "../utils/config";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,7 +13,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const isMobile = useIsMobile();
   const { user, logout } = useAuth();
   // Import images to ensure they work in production/build
-  const logoUrl = new URL('../assets/logo.jpg', import.meta.url).href;
+  // Import images to ensure they work in production/build
+  const company = getCompanySettings();
+  const logoUrl = company.logoPath || new URL('../assets/logo.jpg', import.meta.url).href;
   const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
 
   // Permissions Helper

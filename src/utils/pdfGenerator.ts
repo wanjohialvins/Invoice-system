@@ -40,9 +40,55 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
         resolve(null);
       }
     };
-    img.onerror = () => resolve(null);
     img.src = src;
   });
+
+class LayoutCursor {
+  private _y: number;
+  private readonly doc: jsPDF;
+  private readonly pageHeight: number;
+  private readonly margin: number;
+
+  constructor(doc: jsPDF, initialY: number, margin: number) {
+    this.doc = doc;
+    this._y = initialY;
+    this.pageHeight = doc.internal.pageSize.getHeight();
+    this.margin = margin;
+  }
+
+  get y() { return this._y; }
+
+  // Move cursor down
+  advance(amount: number) {
+    this._y += amount;
+  }
+
+  // Reset to top margin (usually after page break)
+  reset() {
+    this._y = this.margin;
+  }
+
+  // Check if content fits, otherwise add page
+  ensureSpace(requiredHeight: number) {
+    if (this._y + requiredHeight > this.pageHeight - this.margin) {
+      this.doc.addPage();
+      this.reset();
+      return true;
+    }
+    return false;
+  }
+
+  setY(val: number) {
+    this._y = val;
+  }
+
+  updateFromAutoTable() {
+    const finalY = (this.doc as any).lastAutoTable?.finalY;
+    if (finalY) {
+      this._y = finalY;
+    }
+  }
+}
 
 export const generateInvoicePDF = async (
   invoice: InvoiceData,
@@ -121,11 +167,13 @@ export const generateInvoicePDF = async (
     // --- Header Section (Clean Design: Logo Left, Info Right) ---
     const headerY = margin;
     const headerHeight = 35; // Keeping height reservation
-    let y = headerY;
+    const cursor = new LayoutCursor(doc, headerY, margin);
 
     // LEFT: Logo
     if (SETTINGS.includeHeader) {
-      const logoInfo = await loadImageAsDataURL(logo);
+      // Use logo from settings if available, otherwise fallback to imported default
+      const logoToUse = COMPANY.logoPath || logo;
+      const logoInfo = await loadImageAsDataURL(logoToUse);
       if (logoInfo) {
         const maxW = 80;
         const maxH = 40;
@@ -140,29 +188,41 @@ export const generateInvoicePDF = async (
     // RIGHT: Company Info
     if (SETTINGS.includeCompanyDetails) {
       const rightMargin = pageWidth - margin;
-      y = headerY + 5;
+      cursor.setY(headerY + 5);
+
       doc.setFont(font, "bold");
       doc.setFontSize(20);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(String(COMPANY.name || ""), rightMargin, y, { align: "right" });
-      y += 7;
+
+      // Safe wrap for Company Name
+      const maxNameWidth = 100; // Limit width to avoid overlap
+      const nameLines = doc.splitTextToSize(String(COMPANY.name || ""), maxNameWidth);
+      doc.text(nameLines, rightMargin, cursor.y, { align: "right" });
+      cursor.advance(nameLines.length * 8);
+
       doc.setFont(font, "normal");
       doc.setFontSize(10);
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      doc.text(String(COMPANY.address1 || ""), rightMargin, y, { align: "right" });
-      y += 5;
-      doc.text(String(COMPANY.address2 || ""), rightMargin, y, { align: "right" });
-      y += 5;
-      doc.text(`Phone: ${COMPANY.phone || ""}`, rightMargin, y, { align: "right" });
-      y += 5;
-      doc.text(`Email: ${COMPANY.email || ""}`, rightMargin, y, { align: "right" });
-      y += 5;
-      doc.text(`PIN: ${COMPANY.pin || ""}`, rightMargin, y, { align: "right" });
+
+      const contactDetails = [
+        String(COMPANY.address1 || ""),
+        String(COMPANY.address2 || ""),
+        COMPANY.phone ? `Phone: ${COMPANY.phone}` : "",
+        COMPANY.email ? `Email: ${COMPANY.email}` : "",
+        COMPANY.pin ? `PIN: ${COMPANY.pin}` : ""
+      ].filter(Boolean);
+
+      contactDetails.forEach(detail => {
+        doc.text(detail, rightMargin, cursor.y, { align: "right" });
+        cursor.advance(5);
+      });
     }
 
     // --- Title Bar (Full Width Blue) ---
-    // Added a bit more spacing after the header info
-    const titleY = headerY + headerHeight + 10;
+    // Ensure we start below the header or logo
+    cursor.setY(Math.max(cursor.y, headerY + headerHeight) + 10);
+    const titleY = cursor.y;
+
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(margin, titleY, pageWidth - (margin * 2), 10, "F");
 
@@ -177,23 +237,27 @@ export const generateInvoicePDF = async (
     );
 
     // --- Details Section (Middle Boxes) - DYNAMIC HEIGHT ---
-    const detailsY = titleY + 15;
+    cursor.advance(15);
+    const detailsStartY = cursor.y;
     // Helper calculations for layout below header
     const boxWidth = (pageWidth - (margin * 2) - boxGap) / 2;
     const rightBoxX = margin + boxWidth + boxGap;
 
-    // Calculate Bill To box height
-    let billToLines = 0;
-    if (invoice.customer.id) billToLines++;
-    billToLines++; // Name (always present)
-    if (invoice.customer.phone) billToLines++;
-    if (invoice.customer.email) billToLines++;
-    if (invoice.customer.kraPin) billToLines++;
-    if (invoice.customer.address) {
-      const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address}`, boxWidth - 8);
-      billToLines += addrLines.length;
-    }
-    const billToHeight = 7 + (billToLines * 4) + 4; // Header + lines + padding
+    // Calculate Bill To box height dynamically
+    doc.setFont(font, "normal");
+    doc.setFontSize(9);
+    const getWrappedHeight = (text: string, width: number) => {
+      return doc.splitTextToSize(String(text), width).length * 4;
+    };
+
+    let billToH = 7 + 4; // Header + initial padding
+    if (invoice.customer.id) billToH += 4;
+    billToH += getWrappedHeight(invoice.customer.name || "N/A", boxWidth - 8);
+    if (invoice.customer.phone) billToH += 4;
+    if (invoice.customer.email) billToH += 4;
+    if (invoice.customer.kraPin) billToH += 4;
+    if (invoice.customer.address) billToH += getWrappedHeight(`Address: ${invoice.customer.address}`, boxWidth - 8);
+    const billToHeight = billToH + 4; // final padding
 
     // Calculate Invoice Details box height
     let detailLines = 2; // ID + Issued Date (always present)
@@ -201,51 +265,52 @@ export const generateInvoicePDF = async (
       detailLines++;
     }
     const detailsHeight = 7 + (detailLines * 5) + 4 + 15; // Header + lines + padding + Barcode space
-
-    // Use the taller of the two for alignment
     const maxDetailsHeight = Math.max(billToHeight, detailsHeight);
 
     // Box 1: Bill To
     if (SETTINGS.includeCustomerDetails) {
-      drawBox(margin, detailsY, boxWidth, maxDetailsHeight, "Bill To:");
-      y = detailsY + 12;
-      doc.setFont(font, "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      if (invoice.customer.id) { doc.text(`Customer ID: ${invoice.customer.id || ""}`, margin + 4, y); y += 4; }
-      doc.text(`Name: ${invoice.customer.name || "N/A"}`, margin + 4, y); y += 4;
-      if (invoice.customer.phone) { doc.text(`Phone: ${invoice.customer.phone || ""}`, margin + 4, y); y += 4; }
-      if (invoice.customer.email) { doc.text(`Email: ${invoice.customer.email || ""}`, margin + 4, y); y += 4; }
-      if (invoice.customer.kraPin) { doc.text(`KRA PIN: ${invoice.customer.kraPin || ""}`, margin + 4, y); y += 4; }
-      if (invoice.customer.address) {
-        const addrLines = doc.splitTextToSize(`Address: ${invoice.customer.address || ""}`, boxWidth - 8);
-        doc.text(addrLines, margin + 4, y);
+      drawBox(margin, detailsStartY, boxWidth, maxDetailsHeight, "Bill To:");
+      let boxCursorY = detailsStartY + 12;
+
+      const printLine = (label: string, text: string) => {
+        doc.setFont(font, "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+
+        const fullText = label ? `${label}: ${text}` : text;
+        const lines = doc.splitTextToSize(fullText, boxWidth - 8);
+        doc.text(lines, margin + 4, boxCursorY);
+        boxCursorY += (lines.length * 4);
       }
+
+      if (invoice.customer.id) printLine("Customer ID", invoice.customer.id);
+      printLine("Name", invoice.customer.name || "N/A");
+      if (invoice.customer.phone) printLine("Phone", invoice.customer.phone);
+      if (invoice.customer.email) printLine("Email", invoice.customer.email);
+      if (invoice.customer.kraPin) printLine("KRA PIN", invoice.customer.kraPin);
+      if (invoice.customer.address) printLine("Address", invoice.customer.address);
     }
 
 
 
     // ... inside generateInvoicePDF
-
     // Box 2: Invoice Details
     let detailsHeader = "Invoice Details:";
     if (documentType === 'QUOTATION') detailsHeader = "Quotation Details:";
     if (documentType === 'PROFORMA') detailsHeader = "Proforma Details:";
-    drawBox(rightBoxX, detailsY, boxWidth, maxDetailsHeight, detailsHeader);
+    drawBox(rightBoxX, detailsStartY, boxWidth, maxDetailsHeight, detailsHeader);
 
-    y = detailsY + 12;
+    let box2Y = detailsStartY + 12;
     const labelX = rightBoxX + 4;
     const valX = rightBoxX + 45;
-
-
 
     const printRow = (label: string, value: string, color?: number[]) => {
       doc.setTextColor(0, 0, 0);
       doc.setFont(font, "normal");
-      doc.text(label, labelX, y);
+      doc.text(label, labelX, box2Y);
       if (color) doc.setTextColor(color[0], color[1], color[2]);
-      doc.text(value, valX, y);
-      y += 5;
+      doc.text(value, valX, box2Y);
+      box2Y += 5;
     };
 
     printRow(
@@ -269,7 +334,7 @@ export const generateInvoicePDF = async (
         const barcodeWidth = 40;
         const barcodeHeight = 10;
         const barcodeX = rightBoxX + (boxWidth - barcodeWidth) / 2;
-        doc.addImage(barcodeData, "PNG", barcodeX, y + 2, barcodeWidth, barcodeHeight);
+        doc.addImage(barcodeData, "PNG", barcodeX, box2Y + 2, barcodeWidth, barcodeHeight);
       } catch (e) {
         console.warn("Barcode generation failed", e);
       }
@@ -300,7 +365,7 @@ export const generateInvoicePDF = async (
     ]);
 
     autoTable(doc, {
-      startY: detailsY + maxDetailsHeight + 10,
+      startY: detailsStartY + maxDetailsHeight + 10,
       head: [tableHeader],
       body: tableBody,
       theme: "grid",
@@ -331,8 +396,8 @@ export const generateInvoicePDF = async (
     });
 
     // --- Footer Section (Bottom Boxes) - DYNAMIC HEIGHT ---
-    const finalY = (doc as any).lastAutoTable?.finalY || 200;
-    const footerTopY = finalY + 10;
+    cursor.updateFromAutoTable(); // Update cursor after autoTable
+    cursor.advance(10); // Add space after table
 
     // Calculate Payment box height
     const bankDetails = [
@@ -350,28 +415,27 @@ export const generateInvoicePDF = async (
 
     const maxFooterHeight = Math.max(paymentHeight, summaryHeight);
 
-    // Check page break
-    if (footerTopY + maxFooterHeight > pageHeight) {
-      doc.addPage();
-    }
+    // Check page break using cursor
+    cursor.ensureSpace(maxFooterHeight);
+    const footerStartY = cursor.y;
 
     // Payment Box (Left)
     if (SETTINGS.includePaymentDetails) {
-      drawBox(margin, footerTopY, boxWidth, maxFooterHeight, "Payment Details");
-      y = footerTopY + 12;
+      drawBox(margin, footerStartY, boxWidth, maxFooterHeight, "Payment Details");
+      let boxCursorY = footerStartY + 12;
       doc.setFont(font, "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       bankDetails.forEach(line => {
-        doc.text(line, margin + 4, y);
-        y += 4;
+        doc.text(line, margin + 4, boxCursorY);
+        boxCursorY += 4;
       });
     }
 
     // Summary Box (Right)
-    drawBox(rightBoxX, footerTopY, boxWidth, maxFooterHeight, "Summary");
+    drawBox(rightBoxX, footerStartY, boxWidth, maxFooterHeight, "Summary");
 
-    y = footerTopY + 14;
+    let sumY = footerStartY + 14;
     const sumLabelX = rightBoxX + 4;
     const sumValX = pageWidth - margin - 4;
 
@@ -383,51 +447,46 @@ export const generateInvoicePDF = async (
     // Subtotal
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
-    doc.text("Subtotal", sumLabelX, y);
-    doc.text(`${currency} ${formatCurrency(invoice.subtotal)}`, sumValX, y, { align: "right" });
-    y += 6;
+    doc.text("Subtotal", sumLabelX, sumY);
+    doc.text(`${currency} ${formatCurrency(invoice.subtotal)}`, sumValX, sumY, { align: "right" });
+    sumY += 6;
 
     // VAT
-    doc.text(`VAT (16%)`, sumLabelX, y);
-    doc.text(`${currency} ${formatCurrency(vatAmount)}`, sumValX, y, { align: "right" });
-    y += 6;
-
-
+    doc.text(`VAT (16%)`, sumLabelX, sumY);
+    doc.text(`${currency} ${formatCurrency(vatAmount)}`, sumValX, sumY, { align: "right" });
+    sumY += 6;
 
     // Grand Total Bar inside the box
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(rightBoxX, y - 4, boxWidth, 10, "F");
+    doc.rect(rightBoxX, sumY - 4, boxWidth, 10, "F");
 
     doc.setTextColor(255, 255, 255);
     doc.setFont(font, "bold");
-    doc.text("Grand Total", sumLabelX, y + 2);
+    doc.text("Grand Total", sumLabelX, sumY + 2);
     // Use the calculated total including VAT
-    doc.text(`${currency} ${formatCurrency(finalTotal)}`, sumValX, y + 2, { align: "right" });
+    doc.text(`${currency} ${formatCurrency(finalTotal)}`, sumValX, sumY + 2, { align: "right" });
 
     // --- Custom Sections (Responsibilities & Terms) ---
     // Calculate start Y for custom sections (below the lowest box)
-    let customY = Math.max(y, footerTopY + maxFooterHeight) + 10;
+    cursor.setY(footerStartY + maxFooterHeight + 10);
 
     const printCustomSection = (title: string, content: string) => {
       // Check page break
-      if (customY + 20 > pageHeight - 20) {
-        doc.addPage();
-        customY = margin;
-      }
+      cursor.ensureSpace(20);
 
       doc.setFont(font, "bold");
       doc.setFontSize(10);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(String(title), margin, customY);
-      customY += 5;
+      doc.text(String(title), margin, cursor.y);
+      cursor.advance(5);
 
       doc.setFont(font, "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
 
       const lines = doc.splitTextToSize(String(content), pageWidth - (margin * 2));
-      doc.text(lines, margin, customY);
-      customY += (lines.length * 4) + 8; // Spacing for next section
+      doc.text(lines, margin, cursor.y);
+      cursor.advance((lines.length * 4) + 8); // Spacing for next section
     };
 
     if (invoice.clientResponsibilities) {

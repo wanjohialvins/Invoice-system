@@ -7,6 +7,8 @@
  * Used by 'NewInvoice.tsx' and 'pdfGenerator.ts' to ensure consistency.
  */
 
+import logo from "../assets/logo.jpg";
+
 export const DEFAULT_COMPANY = {
     name: "KONSUT LTD",
     address1: "P.O BOX 21162-00100",
@@ -14,7 +16,7 @@ export const DEFAULT_COMPANY = {
     phone: "+254 700 420 897",
     email: "info@konsut.co.ke",
     pin: "P052435869T",
-    logoPath: "/src/assets/logo.jpg",
+    logoPath: logo,
 };
 
 export const DEFAULT_INVOICE_SETTINGS = {

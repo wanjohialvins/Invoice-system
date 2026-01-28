@@ -48,7 +48,7 @@ const NewInvoice: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const logoUrl = new URL('../assets/logo.jpg', import.meta.url).href;
+
 
   // --- Inventory State ---
   // Loaded from localStorage to populate the selection lists.

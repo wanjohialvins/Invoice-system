@@ -1,5 +1,7 @@
 // src/constants/index.ts
 
+import logo from "../assets/logo.jpg";
+
 export const STORAGE_KEYS = {
   STOCK: "stockData",
   INVOICES: "invoices",
@@ -15,7 +17,7 @@ export const COMPANY = {
   phone: "+254 700 420 897",
   email: "info@konsutltd.co.ke",
   pin: "P052435869T",
-  logoPath: "/src/assets/logo.jpg",
+  logoPath: logo,
 } as const;
 
 export const DEFAULT_RATES = {
