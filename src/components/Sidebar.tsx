@@ -3,6 +3,8 @@ import { FiHome, FiFileText, FiUsers, FiSettings, FiPackage, FiBarChart2, FiX, F
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useAuth } from "../contexts/AuthContext";
 import { getCompanySettings } from "../utils/config";
+import logo from "../assets/logo.jpg";
+import avatarNew from "../assets/avatar_new.jpg";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,8 +17,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   // Import images to ensure they work in production/build
   // Import images to ensure they work in production/build
   const company = getCompanySettings();
-  const logoUrl = company.logoPath || new URL('../assets/logo.jpg', import.meta.url).href;
-  const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
+  // Fallback priority: Configured Path -> Imported Asset
+  const logoUrl = company.logoPath || logo;
+  const avatarUrl = avatarNew;
 
   // Permissions Helper
   const isAllowed = (path: string) => {

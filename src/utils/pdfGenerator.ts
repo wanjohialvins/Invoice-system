@@ -23,7 +23,15 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
     if (!src) return resolve(null);
     const img = new Image();
     img.crossOrigin = "Anonymous";
+
+    // Timeout safety - resolve null if loading takes too long (3s)
+    const timeout = setTimeout(() => {
+      console.warn("Logo load timed out:", src);
+      resolve(null);
+    }, 3000);
+
     img.onload = () => {
+      clearTimeout(timeout);
       try {
         const c = document.createElement("canvas");
         c.width = img.width;
@@ -36,10 +44,18 @@ const loadImageAsDataURL = (src: string): Promise<{ data: string; width: number;
           width: img.width,
           height: img.height
         });
-      } catch {
+      } catch (e) {
+        console.warn("Logo processing failed:", e);
         resolve(null);
       }
     };
+
+    img.onerror = () => {
+      clearTimeout(timeout);
+      console.warn("Logo load failed:", src);
+      resolve(null);
+    };
+
     img.src = src;
   });
 

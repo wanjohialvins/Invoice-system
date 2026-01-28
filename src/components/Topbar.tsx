@@ -2,6 +2,8 @@ import { FiBell, FiMenu, FiLogOut } from "react-icons/fi";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useAuth } from "../contexts/AuthContext";
 import { getCompanySettings } from "../utils/config";
+import logo from "../assets/logo.jpg";
+import avatarNew from "../assets/avatar_new.jpg";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -10,7 +12,7 @@ interface TopbarProps {
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const isMobile = useIsMobile();
   const { user, logout } = useAuth();
-  const avatarUrl = new URL('../assets/avatar_new.jpg', import.meta.url).href;
+  const avatarUrl = avatarNew;
 
   return (
     <header className="bg-white/80 dark:bg-midnight-900/80 backdrop-blur-md border-b border-gray-100 dark:border-midnight-700 sticky top-0 z-20 px-4 md:px-8 py-4 flex justify-between items-center transition-all duration-300">
@@ -29,7 +31,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
 
         {/* Title */}
         <div className="flex items-center gap-3">
-          <img src={getCompanySettings().logoPath || new URL('../assets/logo.jpg', import.meta.url).href} alt="Logo" className="h-8 w-8 rounded-full object-contain bg-white shadow-sm" />
+          <img src={getCompanySettings().logoPath || logo} alt="Logo" className="h-8 w-8 rounded-full object-contain bg-white shadow-sm" />
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-midnight-text-primary">KONSUT</h1>
           <span className="hidden md:inline-block px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 text-xs font-semibold rounded-full">
             Enterprise Plan
